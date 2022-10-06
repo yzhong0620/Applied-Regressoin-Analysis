@@ -1,0 +1,105 @@
+---
+title: "BST 210 Project"
+author: "Yunyang Zhong"
+date: '2022-10-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ipumsr)
+ddi <- read_ipums_ddi("nhis_00001.xml")
+data <- read_ipums_micro(ddi)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results = FALSE)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+data$sexcat <- NA
+data$sexcat[data$SEX == 1] = "Male"
+data$sexcat[data$SEX == 2] = "Female"
+data$sexcat <- as.factor(data$sexcat)
+
+summary(data$sexcat)
+```
+
+
+```{r}
+data$AGE[data$AGE == 997] = NA
+data$AGE[data$AGE == 999] = NA
+data$AGE[data$AGE == 0] = NA
+
+summary(data$AGE)
+```
+
+```{r}
+data$sexoricat <- NA
+data$sexoricat[data$SEXORIEN == 1] = "homosexual"
+data$sexoricat[data$SEXORIEN == 2] = "heterosexual"
+data$sexoricat[data$SEXORIEN == 3] = "bisexual"
+data$sexoricat[data$SEXORIEN == 4] = "other"
+data$sexoricat <- factor(data$sexoricat, levels = c("homosexual", "heterosexual", "bisexual", "other"))
+
+summary(data$sexoricat)
+```
+
+```{r}
+data$covid <- NA
+data$covid[data$CVDTESTRSLT == 1] = "No"
+data$covid[data$CVDTESTRSLT == 2] = "Yes"
+data$covid <- as.factor(data$covid)
+
+summary(data$covid)
+```
+
+
+```{r}
+data$anxiety <- NA
+data$anxiety[data$ANXIETYEV == 1] = "No"
+data$anxiety[data$ANXIETYEV == 2] = "Yes"
+data$anxiety <- as.factor(data$anxiety)
+
+summary(data$anxiety)
+```
+```{r}
+data$MOD10DMIN[data$MOD10DMIN %in% c(0, 996, 997, 998, 999)] = NA
+
+summary(data$MOD10DMIN)
+```
+
+```{r}
+data$depress <- NA
+data$depress[data$DEPFREQ == 1] = "daily"
+data$depress[data$DEPFREQ == 2] = "weekly"
+data$depress[data$DEPFREQ == 3] = "monthly"
+data$depress[data$DEPFREQ == 4] = "yearly"
+data$depress[data$DEPFREQ == 5] = "never"
+data$depress <- factor(data$depress, levels = c("daily", "weekly", "monthly", "yearly", "never"))
+
+summary(data$depress)
+```
+
+```{r, results='hold'}
+data %>% 
+  ggplot(aes(x=covid, fill=anxiety)) +
+  geom_bar()
+
+data %>% 
+  ggplot(aes(x=covid, fill=depress)) +
+  geom_bar()
+```
+
+```{r, results='hold'}
+data %>% 
+  ggplot(aes(x=anxiety,y=AGE)) +
+  geom_boxplot()
+
+data %>% 
+  ggplot(aes(x=depress,y=AGE)) +
+  geom_boxplot()
+```
+
