@@ -2,7 +2,7 @@
 title: "BST 210 Project"
 author: "Yunyang Zhong"
 date: '2022-10-05'
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
