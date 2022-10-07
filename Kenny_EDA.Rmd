@@ -1,0 +1,258 @@
+---
+title: "BST 210 Project - Kenny's EDA"
+output: html_document
+---
+
+# Data Preprocessing
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ipumsr)
+ddi <- read_ipums_ddi("nhis_00001.xml")
+data <- read_ipums_micro(ddi)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results = FALSE)
+```
+
+```{r}
+data$AGE[data$AGE == 997] = NA
+data$AGE[data$AGE == 999] = NA
+data$AGE[data$AGE == 0] = NA
+
+summary(data$AGE)
+```
+
+```{r}
+data$sexcat <- NA
+data$sexcat[data$SEX == 1] = "male"
+data$sexcat[data$SEX == 2] = "female"
+data$sexcat <- as.factor(data$sexcat)
+
+summary(data$sexcat)
+```
+
+```{r}
+data$sexoricat <- NA
+data$sexoricat[data$SEXORIEN == 1] = "homosexual"
+data$sexoricat[data$SEXORIEN == 2] = "heterosexual"
+data$sexoricat[data$SEXORIEN == 3] = "bisexual"
+data$sexoricat[data$SEXORIEN == 4] = "other"
+data$sexoricat <- factor(data$sexoricat, levels = c("homosexual", "heterosexual", "bisexual", "other"))
+
+summary(data$sexoricat)
+```
+
+```{r}
+data$racecat <- NA
+data$racecat[data$RACENEW == 100] = "white"
+data$racecat[data$RACENEW == 200] = "black"
+data$racecat[data$RACENEW == 300] = "aian"
+data$racecat[data$RACENEW == 400] = "asian"
+data$racecat[data$RACENEW > 400 & data$RACENEW < 900] = "other"
+data$racecat <- as.factor(data$racecat)
+
+summary(data$racecat)
+```
+
+```{r}
+data$HOURSWRK[data$HOURSWRK > 95] = NA
+data$HOURSWRK[data$HOURSWRK == 0] = NA
+
+summary(data$HOURSWRK)
+```
+
+```{r}
+data$incomecat <- NA
+data$incomecat[data$INCFAM07ON == 11] = "under $34,999"
+data$incomecat[data$INCFAM07ON == 12] = "$35,000-$49,999"
+data$incomecat[data$INCFAM07ON == 22] = "$50,000-$74,999"
+data$incomecat[data$INCFAM07ON == 23] = "$75,000-$99,999"
+data$incomecat[data$INCFAM07ON == 24] = "over $100,000"
+data$incomecat <- factor(data$incomecat, levels = c("under $34,999", "$35,000-$49,999", "$50,000-$74,999", "$75,000-$99,999", "over $100,000"))
+
+summary(data$incomecat)
+```
+
+```{r}
+data$healthcat <- NA
+data$healthcat[data$HEALTH == 1] = "excellent"
+data$healthcat[data$HEALTH == 2] = "very good"
+data$healthcat[data$HEALTH == 3] = "good"
+data$healthcat[data$HEALTH == 4] = "fair"
+data$healthcat[data$HEALTH == 5] = "poor"
+data$healthcat <- factor(data$healthcat, levels = c("excellent", "very good", "good", "fair", "poor"))
+
+summary(data$healthcat)
+```
+
+```{r}
+data$insurcat <- NA
+data$insurcat[data$HINOTCOVE == 1] = "no"
+data$insurcat[data$HINOTCOVE == 2] = "yes"
+data$insurcat <- as.factor(data$insurcat)
+
+summary(data$insurcat)
+```
+
+```{r}
+data$MOD10DMIN[data$MOD10DMIN %in% c(0, 996, 997, 998, 999)] = NA
+
+summary(data$MOD10DMIN)
+```
+
+```{r}
+data$MOD10FWK[data$MOD10FWK == 0] = NA
+data$MOD10FWK[data$MOD10FWK > 90] = NA
+
+summary(data$MOD10FWK)
+```
+
+```{r}
+data$anxiety <- NA
+data$anxiety[data$ANXIETYEV == 1] = "No"
+data$anxiety[data$ANXIETYEV == 2] = "Yes"
+data$anxiety <- as.factor(data$anxiety)
+
+summary(data$anxiety)
+```
+
+```{r}
+data$depress <- NA
+data$depress[data$DEPFREQ == 1] = "daily"
+data$depress[data$DEPFREQ == 2] = "weekly"
+data$depress[data$DEPFREQ == 3] = "monthly"
+data$depress[data$DEPFREQ == 4] = "yearly"
+data$depress[data$DEPFREQ == 5] = "never"
+data$depress <- factor(data$depress, levels = c("daily", "weekly", "monthly", "yearly", "never"))
+
+summary(data$depress)
+```
+
+```{r}
+data$esupport <- NA
+data$esupport[data$EMOSUPPORT == 1] = "always"
+data$esupport[data$EMOSUPPORT == 2] = "usually"
+data$esupport[data$EMOSUPPORT == 3] = "sometimes"
+data$esupport[data$EMOSUPPORT == 4] = "rarely"
+data$esupport[data$EMOSUPPORT == 5] = "never"
+data$esupport <- factor(data$esupport, levels = c("always", "usually", "sometimes", "rarely", "never"))
+
+summary(data$esupport)
+```
+
+```{r}
+data$covid <- NA
+data$covid[data$CVDTESTRSLT == 1] = "No"
+data$covid[data$CVDTESTRSLT == 2] = "Yes"
+data$covid <- as.factor(data$covid)
+
+summary(data$covid)
+```
+
+```{r}
+data$sympt <- NA
+data$sympt[data$CVDSYMP == 1] = "no symptoms"
+data$sympt[data$CVDSYMP == 2] = "mild symptoms"
+data$sympt[data$CVDSYMP == 3] = "moderate symptoms"
+data$sympt[data$CVDSYMP == 4] = "severe symptoms"
+data$sympt <- factor(data$sympt, levels = c("no symptoms", "mild symptoms", "moderate symptoms", "severe symptoms"))
+
+summary(data$sympt)
+```
+
+# Data Visualizations
+
+```{r}
+data_noNa<- drop_na(data) 
+```
+
+```{r, results='hold'}
+data_noNa  |>  
+  ggplot(aes(x=covid, fill=anxiety)) +
+  geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=covid, fill=depress)) +
+  geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=sexcat, fill=anxiety)) +
+    geom_bar(position="fill")
+
+
+data_noNa |> 
+  ggplot(aes(x=sexcat, fill=depress)) +
+  geom_bar(position="fill")
+
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=sexoricat, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=sexoricat, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=racecat, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=racecat, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=incomecat, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=incomecat, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=healthcat, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=healthcat, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=insurcat, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=insurcat, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=esupport, fill=anxiety)) +
+   geom_bar(position="fill")
+
+data_noNa |> 
+  ggplot(aes(x=esupport, fill=depress)) +
+   geom_bar(position="fill")
+```
+
+```{r, results='hold'}
+data_noNa |> 
+  ggplot(aes(x=sympt, fill=anxiety)) +
+  geom_bar(position = "fill")
+
+data_noNa |> 
+  ggplot(aes(x=sympt, fill=depress)) +
+  geom_bar(position = "fill")
+```
