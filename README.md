@@ -167,6 +167,9 @@ data %>%
 > have not found an efficient manner of collapsing ethnicity and
 > education levels)
 
+> Our outcome variables are inbalanced (even after dropping missing
+> values) so we might need to downsample or upsample.
+
 # Data Visualization
 
 ``` r
