@@ -17,7 +17,7 @@ library(regclass)
 ddi <- read_ipums_ddi("nhis_00002.xml")
 data <- read_ipums_micro(ddi)
 
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 ```{r}
@@ -129,7 +129,7 @@ data$depress[data$DEPFREQ == 2] = "weekly"
 data$depress[data$DEPFREQ == 3] = "monthly"
 data$depress[data$DEPFREQ == 4] = "yearly"
 data$depress[data$DEPFREQ == 5] = "never"
-data$depress <- factor(data$depress, levels = c("daily", "weekly", "monthly", "yearly", "never"))
+data$depress <- factor(data$depress, levels = c("never", "daily", "weekly", "monthly", "yearly"))
 
 summary(data$depress)
 ```
@@ -179,7 +179,7 @@ summary(data$reg)
 
 ```{r, results='hold'}
 data <- data %>% 
-  select(32:43, AGE, HOURSWRK, MOD10DMIN, MOD10FWK, HISPETH, EDUC)
+  select(32:43, AGE, MOD10DMIN, MOD10FWK, -sexoricat, -insurcat, -covid)
 
 data %>% 
   summary()
@@ -189,17 +189,12 @@ dim(data)[1]*0.05
 dim(data %>% drop_na())[1]
 ```
 
-> 4 numeric variables: age, total hours worked last week usually, duration of moderate activity 10+ minutues, frequency of moderate activity 10+ minutes
+> 3 numeric variables: age, duration of moderate activity 10+ minutues, frequency of moderate activity 10+ minutes
 
-> 2 un-cleaned variables: hispanic ethnicity, educational attainment
 
 ```{r}
 data %>% 
   ggplot(aes(x = AGE)) +
-  geom_density()
-
-data %>% 
-  ggplot(aes(x = HOURSWRK)) +
   geom_density()
 
 data %>% 
@@ -218,7 +213,12 @@ data %>%
 ```
 
 ```{r}
-multi <- multinom(anxiety ~ ., data = data %>% select(-depress))
+data_multi <- data %>%
+  select(-depress) %>%
+  mutate(anxiety = case_when(is.na(anxiety) ~ "Unknown",
+                             TRUE ~ as.character(anxiety)))
+
+multi <- multinom(anxiety ~ ., data = data_multi)
 AIC(multi)
 BIC(multi)
 tmulti = tidy(multi)
@@ -240,13 +240,13 @@ tlogis$term[tlogis$p.value < 0.05]
 
 # hoslem.test(logis$anxiety,fitted(logis),g=10)
 # 
-# predprob <- predict(logis,type=c("response"))
+predprob <- predict(logis,type=c("response"))
 # roccurve <- roc(data_logis$anxiety ~ predprob)
 # plot(roccurve,col="red")
 # auc(roccurve)
-# 
-# logLik(logis)
-# vif(logis)
+ 
+logLik(logis)
+VIF(logis)
 ```
 
 ```{r}
@@ -275,6 +275,3 @@ modnever <- glm(depressnever ~ ., family=binomial, data=data %>% select(-anxiety
 summary(modnever)
 coef(modnever)[22]
 ```
-
-
-
