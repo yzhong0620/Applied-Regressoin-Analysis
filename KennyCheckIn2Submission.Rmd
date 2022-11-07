@@ -1,7 +1,8 @@
 ---
 title: "BST 210 Project"
-date: '2022-10-08'
-output: github_document
+author: "Yunyang Zhong"
+date: '2022-11-03'
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -13,15 +14,14 @@ library(broom)
 library(ResourceSelection)
 library(pROC)
 library(regclass)
-library(splines2)
-library(gam)
 ddi <- read_ipums_ddi("nhis_00002.xml")
+raw_data <- read_ipums_micro(ddi)
 data <- read_ipums_micro(ddi)
 
-knitr::opts_chunk$set(warning = FALSE)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
-# Data Cleaning
 
 ```{r}
 data$AGE[data$AGE == 997] = NA
@@ -132,7 +132,7 @@ data$depress[data$DEPFREQ == 2] = "weekly"
 data$depress[data$DEPFREQ == 3] = "monthly"
 data$depress[data$DEPFREQ == 4] = "yearly"
 data$depress[data$DEPFREQ == 5] = "never"
-data$depress <- factor(data$depress, levels = c("never", "daily", "weekly", "monthly", "yearly"))
+data$depress <- factor(data$depress, levels = c("daily", "weekly", "monthly", "yearly", "never"))
 
 summary(data$depress)
 ```
@@ -180,9 +180,9 @@ data$reg <- factor(data$reg, levels = c("northeast", "midwest", "south", "west")
 summary(data$reg)
 ```
 
-```{r}
+```{r, results='hold'}
 data <- data %>% 
-  select(32:43, AGE, MOD10DMIN, MOD10FWK, -sexoricat, -insurcat, -covid)
+  dplyr::select(32:42, AGE, HOURSWRK, MOD10DMIN, MOD10FWK, HISPETH, EDUC, reg)
 
 data %>% 
   summary()
@@ -192,127 +192,19 @@ dim(data)[1]*0.05
 dim(data %>% drop_na())[1]
 ```
 
-> 3 numeric variables: age, duration of moderate activity 10+ minutues, frequency of moderate activity 10+ minutes
+> 4 numeric variables: age, total hours worked last week usually, duration of moderate activity 10+ minutues, frequency of moderate activity 10+ minutes
 
-> Our outcome variables are inbalanced (even after dropping missing values) so we might need to downsample or upsample.
+> 2 un-cleaned variables: hispanic ethnicity, educational attainment
 
-# Data Visualization
 
-```{r}
-data <- drop_na(data) 
-```
-
-> We are not considering missing data for now.
-
-```{r}
-data %>% 
-  ggplot(aes(x=sexcat, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=sexcat, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> Female seems to be positively associated with anxiety and depression.
-
-```{r}
-data %>% 
-  ggplot(aes(x=racecat, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=racecat, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> White and other seem to be at higher risk of anxiety and depression.
-
-```{r}
-data %>% 
-  ggplot(aes(x=incomecat, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=incomecat, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> Higher income seems to be a protective factor.
-
-```{r}
-data %>% 
-  ggplot(aes(x=healthcat, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=healthcat, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> Poor health status is highly associated with anxiety and especially depression.
-
-```{r}
-data %>% 
-  ggplot(aes(x=esupport, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=esupport, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> Participants who rarely or sometimes receive emotional support seem to be under higher risk of anxiety and depression.
-
-```{r}
-data %>% 
-  ggplot(aes(x=sympt, fill=anxiety)) +
-  geom_bar(position="fill")
-
-data %>% 
-  ggplot(aes(x=sympt, fill=depress)) +
-  geom_bar(position="fill")
-```
-
-> Severity of covid symptoms seems to be positively associated with anxiety and depression.
-
-```{r}
-data %>% 
-  ggplot(aes(x=anxiety,y=AGE)) +
-  geom_boxplot()
-
-data %>% 
-  ggplot(aes(x=depress,y=AGE)) +
-  geom_boxplot()
-```
-
-> Participants with anxiety are on average younger, while participants who feel depressed daily are older between 40 and 60.
-
-```{r}
-data %>% 
-  ggplot(aes(x=anxiety,y=MOD10DMIN)) +
-  geom_boxplot()
-
-data %>% 
-  ggplot(aes(x=depress,y=MOD10DMIN)) +
-  geom_boxplot()
-```
-
-> Exercise seems to be a protective factor.
-
-```{r}
-data %>% 
-  ggplot(aes(x=anxiety,y=MOD10FWK)) +
-  geom_boxplot()
-
-data %>% 
-  ggplot(aes(x=depress,y=MOD10FWK)) +
-  geom_boxplot()
-```
 
 ```{r}
 data %>% 
   ggplot(aes(x = AGE)) +
+  geom_density()
+
+data %>% 
+  ggplot(aes(x = HOURSWRK)) +
   geom_density()
 
 data %>% 
@@ -324,85 +216,14 @@ data %>%
   geom_density()
 ```
 
-# Modeling
-
-## Anxiety - logistic & multinomial
-
 ```{r}
-data_logis <- data %>% select(-depress) %>% filter(!is.na(anxiety))
-
-logis <- glm(anxiety ~ ., family = binomial, data = data_logis)
-AIC(logis)
-BIC(logis)
-tlogis = tidy(logis)
-options(scipen = 999)
-tlogis
-tlogis$term[tlogis$p.value < 0.05]
-
-# hoslem.test(logis$anxiety,fitted(logis),g=10)
- 
-predprob <- predict(logis,type=c("response"))
-# roccurve <- roc(data_logis$anxiety ~ predprob)
-# plot(roccurve,col="red")
-# auc(roccurve)
- 
-logLik(logis)
-VIF(logis)
+data %>% 
+  filter(anxiety == "Yes") %>% 
+  summary()
 ```
 
-```{r}
-data_multi <- data %>%
-  select(-depress) %>%
-  mutate(anxiety = case_when(is.na(anxiety) ~ "Unknown",
-                             TRUE ~ as.character(anxiety)))
 
-multi <- multinom(anxiety ~ ., data = data_multi)
-AIC(multi)
-BIC(multi)
-tmulti = tidy(multi)
-options(scipen = 999)
-tmulti
-tmulti$term[tmulti$p.value < 0.05]
-```
-
-## Depression - multinomial & ordinal
-
-```{r}
-multi <- multinom(depress ~ ., data = data %>% select(-anxiety))
-AIC(multi)
-BIC(multi)
-tmulti = tidy(multi)
-options(scipen = 999)
-tmulti
-tmulti$term[tmulti$p.value < 0.05]
-```
-
-```{r}
-ordin <- vglm(depress ~ ., cumulative(parallel=TRUE, reverse=TRUE), data = data %>% select(-anxiety))
-AIC(ordin)
-BIC(ordin)
-
-data$depressdaily <- ifelse(data$depress=="daily", 1, 0)
-data$depressnever <- ifelse(data$depress=="never", 1, 0)
-
-moddaily <- glm(depressdaily ~ ., family=binomial, data=data %>% select(-anxiety, -depress, -depressnever)) 
-summary(moddaily)
-
-modnever <- glm(depressnever ~ ., family=binomial, data=data %>% select(-anxiety, -depress, -depressdaily)) 
-summary(modnever)
-
-coef(moddaily)[19:21]
-coef(moddaily)[19] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[19,19])
-coef(moddaily)[20] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[20,20])
-coef(moddaily)[21] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[21,21])
-
-coef(modnever)[19:21]
-coef(modnever)[19] + c(-1, 1)*1.96*sqrt(vcov(modnever)[19,19])
-coef(modnever)[20] + c(-1, 1)*1.96*sqrt(vcov(modnever)[20,20])
-coef(modnever)[21] + c(-1, 1)*1.96*sqrt(vcov(modnever)[21,21])
-```
-
-## Physical activity
+# Kenny's Analyses
 
 ```{r}
 filtered_data <- data |> 
@@ -414,9 +235,10 @@ complete_data <- filtered_data |>
   drop_na()
 ```
 
-> We have 8 variables in our data set with 378 complete cases.
+We have 8 variables in our data set with 378 complete cases.
+We are interested in modeling the relationship between the severity of covid-19 symptoms and the duration of moderate physical activity. In our model, we are adjusting for sex, race, income, health, age.
 
-> We are interested in modeling the relationship between the severity of covid-19 symptoms and the duration of moderate physical activity. In our model, we are adjusting for sex, race, income, health, age.
+# Kenny's EDA
 
 ```{r}
 #univariate
@@ -430,7 +252,7 @@ barplot(prop.table(table(complete_data$incomecat)))
 barplot(prop.table(table(complete_data$healthcat)))
 ```
 
-> We see that the duration of moderate physical activity is heavily right skewed so we log transformed it.
+We see that the duration of moderate physical activity is heavily right skewed so we log transformed it.
 
 ```{r}
 #bivariate
@@ -444,8 +266,9 @@ boxplot(complete_data$MOD10DMIN ~ complete_data$healthcat)
 chisq.test(complete_data$healthcat, complete_data$sympt)
 ```
 
-> There does not appear to be a linear relationship between age and log(MOD10DMIN) so we might not want to include it in this model. We will keep it for this hw checkin and do some flexible modeling below.
+There does not appear to be a linear relationship between age and log(MOD10DMIN) so we might not want to include it in this model. We will keep it for this hw checkin and do some flexible modeling below.
 
+# Fitting the full model
 ```{r}
 lm1 <- lm(log(MOD10DMIN) ~ .,data = complete_data |> dplyr::select(-MOD10FWK))
 # lm1_reg <- lm(log(MOD10DMIN)~ .,data = complete_data)
@@ -453,31 +276,42 @@ tidy(lm1)
 # summary(lm1)
 ```
 
-> In the full model, we see that after adjusting for the effect of the other variables, none of the COVID symptom levels have a statistically significant effect on the duration of moderate physical activity.
+In the full model, we see that after adjusting for the effect of the other variables, none of the COVID symptom levels have a statistically significant effect on the duration of moderate physical activity.
+
+# Diagnosis and Model Evaluation
 
 ```{r}
 plot(lm1, 1:6)
 ```
+From the residual plots, it seems linearity, normality, and equal variance holds.
 
-> From the residual plots, it seems linearity, normality, and equal variance holds.
 
+# Flexible modeling
 ```{r}
+library(splines2)
+library(gam)
 gam1 <- gam(log(MOD10DMIN) ~ s(AGE, 4) + .,data = complete_data |> dplyr::select(-MOD10FWK))
 anova(lm1, gam1)
 ```
+It seems that it is better to use the GAM model instead of the linear term for Age
 
-> It seems that it is better to use the GAM model instead of the linear term for Age
+
+# Maria's Poisson
 
 ```{r}
 hist(complete_data$MOD10FWK)
 hist(log(complete_data$MOD10FWK))
+
 ```
+
 
 ```{r}
 mean(complete_data$MOD10FWK)
 var(complete_data$MOD10FWK)
 
+
 mod_poisson1 <- glm(MOD10FWK ~ . , data = complete_data |> dplyr::select(-MOD10DMIN) , family = poisson())
 tidy(mod_poisson1)
 deviance(mod_poisson1)/mod_poisson1$df.residual
 ```
+

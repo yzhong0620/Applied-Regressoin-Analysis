@@ -239,7 +239,7 @@ tlogis
 tlogis$term[tlogis$p.value < 0.05]
 
 # hoslem.test(logis$anxiety,fitted(logis),g=10)
-# 
+ 
 predprob <- predict(logis,type=c("response"))
 # roccurve <- roc(data_logis$anxiety ~ predprob)
 # plot(roccurve,col="red")
@@ -269,9 +269,16 @@ data$depressnever <- ifelse(data$depress=="never", 1, 0)
 
 moddaily <- glm(depressdaily ~ ., family=binomial, data=data %>% select(-anxiety, -depress, -depressnever)) 
 summary(moddaily)
-coef(moddaily)[22]
 
 modnever <- glm(depressnever ~ ., family=binomial, data=data %>% select(-anxiety, -depress, -depressdaily)) 
 summary(modnever)
-coef(modnever)[22]
+
+coef(moddaily)[19:21]
+coef(moddaily)[19] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[19,19])
+coef(moddaily)[20] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[20,20])
+coef(moddaily)[21] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[21,21])
+coef(modnever)[19:21]
+coef(modnever)[19] + c(-1, 1)*1.96*sqrt(vcov(modnever)[19,19])
+coef(modnever)[20] + c(-1, 1)*1.96*sqrt(vcov(modnever)[20,20])
+coef(modnever)[21] + c(-1, 1)*1.96*sqrt(vcov(modnever)[21,21])
 ```
