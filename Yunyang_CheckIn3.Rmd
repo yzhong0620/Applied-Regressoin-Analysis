@@ -1,0 +1,201 @@
+---
+title: "BST 210 Project"
+date: '2022-12-05'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ipumsr)
+library(nnet)
+library(VGAM)
+library(broom)
+library(ResourceSelection)
+library(pROC)
+library(regclass)
+library(splines2)
+library(gam)
+library(mice)
+ddi <- read_ipums_ddi("nhis_00002.xml")
+data <- read_ipums_micro(ddi)
+
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+# Data Cleaning
+
+```{r}
+data <-
+  data %>%
+  select(AGE, SEX, RACENEW, INCFAM07ON, HEALTH, MOD10DMIN, MOD10FWK, ANXIETYEV, DEPFREQ, EMOSUPPORT, CVDSYMP, REGION) %>% 
+  filter(MOD10DMIN != 000) %>% 
+  filter(MOD10FWK != 00) %>% 
+  filter(ANXIETYEV != 0) %>% 
+  filter(DEPFREQ != 0) %>% 
+  filter(EMOSUPPORT != 0) %>% 
+  filter(CVDSYMP != 0)
+
+data %>% summary()
+```
+
+```{r}
+data$AGE[data$AGE == 997] = NA
+data$AGE[data$AGE == 999] = NA
+
+summary(data$AGE)
+```
+
+```{r}
+data$sexcat <- NA
+data$sexcat[data$SEX == 1] = "male"
+data$sexcat[data$SEX == 2] = "female"
+data$sexcat <- as.factor(data$sexcat)
+
+summary(data$sexcat)
+```
+
+```{r}
+data$racecat <- NA
+data$racecat[data$RACENEW == 100] = "white"
+data$racecat[data$RACENEW == 200] = "black"
+data$racecat[data$RACENEW == 300] = "aian"
+data$racecat[data$RACENEW == 400] = "asian"
+data$racecat[data$RACENEW > 400 & data$RACENEW < 900] = "other"
+data$racecat <- as.factor(data$racecat)
+
+summary(data$racecat)
+```
+
+```{r}
+data$incomecat <- NA
+data$incomecat[data$INCFAM07ON == 11] = "under $34,999"
+data$incomecat[data$INCFAM07ON == 12] = "$35,000-$49,999"
+data$incomecat[data$INCFAM07ON == 22] = "$50,000-$74,999"
+data$incomecat[data$INCFAM07ON == 23] = "$75,000-$99,999"
+data$incomecat[data$INCFAM07ON == 24] = "over $100,000"
+data$incomecat <- factor(data$incomecat, levels = c("under $34,999", "$35,000-$49,999", "$50,000-$74,999", "$75,000-$99,999", "over $100,000"))
+
+summary(data$incomecat)
+```
+
+```{r}
+data$healthcat <- NA
+data$healthcat[data$HEALTH == 1] = "excellent"
+data$healthcat[data$HEALTH == 2] = "very good"
+data$healthcat[data$HEALTH == 3] = "good"
+data$healthcat[data$HEALTH == 4] = "fair"
+data$healthcat[data$HEALTH == 5] = "poor"
+data$healthcat <- factor(data$healthcat, levels = c("excellent", "very good", "good", "fair", "poor"))
+
+summary(data$healthcat)
+```
+
+```{r}
+data$MOD10DMIN[data$MOD10DMIN %in% c(996, 997, 998, 999)] = NA
+
+summary(data$MOD10DMIN)
+```
+
+```{r}
+data$MOD10FWK[data$MOD10FWK > 90] = NA
+
+summary(data$MOD10FWK)
+```
+
+```{r}
+data$anxiety <- NA
+data$anxiety[data$ANXIETYEV == 1] = "No"
+data$anxiety[data$ANXIETYEV == 2] = "Yes"
+data$anxiety <- factor(data$anxiety, levels = c("No", "Yes"))
+
+summary(data$anxiety)
+```
+
+```{r}
+data$depress <- NA
+data$depress[data$DEPFREQ == 1] = "daily"
+data$depress[data$DEPFREQ == 2] = "weekly"
+data$depress[data$DEPFREQ == 3] = "monthly"
+data$depress[data$DEPFREQ == 4] = "yearly"
+data$depress[data$DEPFREQ == 5] = "never"
+data$depress <- factor(data$depress, levels = c("never", "daily", "weekly", "monthly", "yearly"))
+
+summary(data$depress)
+```
+
+```{r}
+data$esupport <- NA
+data$esupport[data$EMOSUPPORT == 1] = "always"
+data$esupport[data$EMOSUPPORT == 2] = "usually"
+data$esupport[data$EMOSUPPORT == 3] = "sometimes"
+data$esupport[data$EMOSUPPORT == 4] = "rarely"
+data$esupport[data$EMOSUPPORT == 5] = "never"
+data$esupport <- factor(data$esupport, levels = c("always", "usually", "sometimes", "rarely", "never"))
+
+summary(data$esupport)
+```
+
+```{r}
+data$sympt <- NA
+data$sympt[data$CVDSYMP == 1] = "no symptoms"
+data$sympt[data$CVDSYMP == 2] = "mild symptoms"
+data$sympt[data$CVDSYMP == 3] = "moderate symptoms"
+data$sympt[data$CVDSYMP == 4] = "severe symptoms"
+data$sympt <- factor(data$sympt, levels = c("no symptoms", "mild symptoms", "moderate symptoms", "severe symptoms"))
+
+summary(data$sympt)
+```
+
+```{r}
+data$reg <- NA
+data$reg[data$REGION == 1] = "northeast"
+data$reg[data$REGION == 2] = "midwest"
+data$reg[data$REGION == 3] = "south"
+data$reg[data$REGION == 4] = "west"
+data$reg <- factor(data$reg, levels = c("northeast", "midwest", "south", "west"))
+
+summary(data$reg)
+```
+
+```{r}
+data <- data %>% 
+  select(13:21, AGE, MOD10DMIN, MOD10FWK)
+
+data %>% 
+  summary()
+
+dim(data)[1]*0.05
+
+data <- data %>% drop_na()
+
+dim(data)[1]
+```
+
+# Modeling
+
+## Anxiety - logistic & multinomial
+
+```{r}
+data_logis <- data %>% select(-depress, -MOD10DMIN, -MOD10FWK) %>% filter(anxiety!="N/A")
+
+logis <- glm(anxiety ~ ., family = binomial, data = data_logis)
+AIC(logis)
+BIC(logis)
+tlogis = tidy(logis)
+options(scipen = 999)
+tlogis
+tlogis$term[tlogis$p.value < 0.05]
+
+hist(logis$fitted, main="p-hats")
+hist(hatvalues(logis), main="hat-values")
+
+hoslem.test(model.frame(data_logis)$anxiety,fitted(logis),g=10)
+ 
+predprob <- predict(logis,type=c("response"))
+roccurve <- roc(data_logis$anxiety ~ predprob)
+plot(roccurve,col="red")
+auc(roccurve)
+ 
+logLik(logis)
+VIF(logis)
+```
