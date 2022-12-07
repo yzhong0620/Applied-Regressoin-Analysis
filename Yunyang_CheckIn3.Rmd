@@ -15,7 +15,6 @@ library(pROC)
 library(regclass)
 library(splines2)
 library(gam)
-library(mice)
 ddi <- read_ipums_ddi("nhis_00002.xml")
 data <- read_ipums_micro(ddi)
 
@@ -27,9 +26,8 @@ knitr::opts_chunk$set(warning = FALSE)
 ```{r}
 data <-
   data %>%
-  select(AGE, SEX, RACENEW, INCFAM07ON, HEALTH, MOD10DMIN, MOD10FWK, ANXIETYEV, DEPFREQ, EMOSUPPORT, CVDSYMP, REGION) %>% 
+  select(AGE, SEX, RACENEW, INCFAM07ON, HEALTH, MOD10DMIN, ANXIETYEV, DEPFREQ, EMOSUPPORT, CVDSYMP, REGION) %>% 
   filter(MOD10DMIN != 000) %>% 
-  filter(MOD10FWK != 00) %>% 
   filter(ANXIETYEV != 0) %>% 
   filter(DEPFREQ != 0) %>% 
   filter(EMOSUPPORT != 0) %>% 
@@ -57,10 +55,10 @@ summary(data$sexcat)
 ```{r}
 data$racecat <- NA
 data$racecat[data$RACENEW == 100] = "white"
-data$racecat[data$RACENEW == 200] = "black"
-data$racecat[data$RACENEW == 300] = "aian"
-data$racecat[data$RACENEW == 400] = "asian"
-data$racecat[data$RACENEW > 400 & data$RACENEW < 900] = "other"
+data$racecat[data$RACENEW == 200] = "non-white"
+data$racecat[data$RACENEW == 300] = "non-white"
+data$racecat[data$RACENEW == 400] = "non-white"
+data$racecat[data$RACENEW > 400 & data$RACENEW < 900] = "non-white"
 data$racecat <- as.factor(data$racecat)
 
 summary(data$racecat)
@@ -68,24 +66,24 @@ summary(data$racecat)
 
 ```{r}
 data$incomecat <- NA
-data$incomecat[data$INCFAM07ON == 11] = "under $34,999"
-data$incomecat[data$INCFAM07ON == 12] = "$35,000-$49,999"
-data$incomecat[data$INCFAM07ON == 22] = "$50,000-$74,999"
-data$incomecat[data$INCFAM07ON == 23] = "$75,000-$99,999"
+data$incomecat[data$INCFAM07ON == 11] = "under $49,999"
+data$incomecat[data$INCFAM07ON == 12] = "under $49,999"
+data$incomecat[data$INCFAM07ON == 22] = "$50,000-$99,999"
+data$incomecat[data$INCFAM07ON == 23] = "$50,000-$99,999"
 data$incomecat[data$INCFAM07ON == 24] = "over $100,000"
-data$incomecat <- factor(data$incomecat, levels = c("under $34,999", "$35,000-$49,999", "$50,000-$74,999", "$75,000-$99,999", "over $100,000"))
+data$incomecat <- factor(data$incomecat, levels = c("under $49,999", "$50,000-$99,999", "over $100,000"))
 
 summary(data$incomecat)
 ```
 
 ```{r}
 data$healthcat <- NA
-data$healthcat[data$HEALTH == 1] = "excellent"
-data$healthcat[data$HEALTH == 2] = "very good"
+data$healthcat[data$HEALTH == 1] = "good"
+data$healthcat[data$HEALTH == 2] = "good"
 data$healthcat[data$HEALTH == 3] = "good"
 data$healthcat[data$HEALTH == 4] = "fair"
 data$healthcat[data$HEALTH == 5] = "poor"
-data$healthcat <- factor(data$healthcat, levels = c("excellent", "very good", "good", "fair", "poor"))
+data$healthcat <- factor(data$healthcat, levels = c("good", "fair", "poor"))
 
 summary(data$healthcat)
 ```
@@ -94,12 +92,6 @@ summary(data$healthcat)
 data$MOD10DMIN[data$MOD10DMIN %in% c(996, 997, 998, 999)] = NA
 
 summary(data$MOD10DMIN)
-```
-
-```{r}
-data$MOD10FWK[data$MOD10FWK > 90] = NA
-
-summary(data$MOD10FWK)
 ```
 
 ```{r}
@@ -114,11 +106,11 @@ summary(data$anxiety)
 ```{r}
 data$depress <- NA
 data$depress[data$DEPFREQ == 1] = "daily"
-data$depress[data$DEPFREQ == 2] = "weekly"
-data$depress[data$DEPFREQ == 3] = "monthly"
+data$depress[data$DEPFREQ == 2] = "weekly or monthly"
+data$depress[data$DEPFREQ == 3] = "weekly or monthly"
 data$depress[data$DEPFREQ == 4] = "yearly"
 data$depress[data$DEPFREQ == 5] = "never"
-data$depress <- factor(data$depress, levels = c("never", "daily", "weekly", "monthly", "yearly"))
+data$depress <- factor(data$depress, levels = c("never", "daily", "weekly or monthly", "yearly"))
 
 summary(data$depress)
 ```
@@ -127,10 +119,10 @@ summary(data$depress)
 data$esupport <- NA
 data$esupport[data$EMOSUPPORT == 1] = "always"
 data$esupport[data$EMOSUPPORT == 2] = "usually"
-data$esupport[data$EMOSUPPORT == 3] = "sometimes"
-data$esupport[data$EMOSUPPORT == 4] = "rarely"
-data$esupport[data$EMOSUPPORT == 5] = "never"
-data$esupport <- factor(data$esupport, levels = c("always", "usually", "sometimes", "rarely", "never"))
+data$esupport[data$EMOSUPPORT == 3] = "sometimes-never"
+data$esupport[data$EMOSUPPORT == 4] = "sometimes-never"
+data$esupport[data$EMOSUPPORT == 5] = "sometimes-never"
+data$esupport <- factor(data$esupport, levels = c("always", "usually", "sometimes-never"))
 
 summary(data$esupport)
 ```
@@ -159,43 +151,16 @@ summary(data$reg)
 
 ```{r}
 data <- data %>% 
-  select(13:21, AGE, MOD10DMIN, MOD10FWK)
+  select(12:20, AGE, MOD10DMIN)
 
 data %>% 
   summary()
 
 dim(data)[1]*0.05
+```
 
+```{r}
 data <- data %>% drop_na()
 
 dim(data)[1]
-```
-
-# Modeling
-
-## Anxiety - logistic & multinomial
-
-```{r}
-data_logis <- data %>% select(-depress, -MOD10DMIN, -MOD10FWK) %>% filter(anxiety!="N/A")
-
-logis <- glm(anxiety ~ ., family = binomial, data = data_logis)
-AIC(logis)
-BIC(logis)
-tlogis = tidy(logis)
-options(scipen = 999)
-tlogis
-tlogis$term[tlogis$p.value < 0.05]
-
-hist(logis$fitted, main="p-hats")
-hist(hatvalues(logis), main="hat-values")
-
-hoslem.test(model.frame(data_logis)$anxiety,fitted(logis),g=10)
- 
-predprob <- predict(logis,type=c("response"))
-roccurve <- roc(data_logis$anxiety ~ predprob)
-plot(roccurve,col="red")
-auc(roccurve)
- 
-logLik(logis)
-VIF(logis)
-```
+``
