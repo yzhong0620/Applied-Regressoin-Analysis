@@ -17,6 +17,7 @@ library(splines2)
 library(gam)
 library(groupdata2)
 library(caret)
+library(generalhoslem)
 ddi <- read_ipums_ddi("nhis_00002.xml")
 data <- read_ipums_micro(ddi)
 
@@ -28,21 +29,17 @@ knitr::opts_chunk$set(warning = FALSE)
 ```{r}
 data <-
   data %>%
-  select(AGE, SEX, RACENEW, INCFAM07ON, HEALTH, MOD10DMIN, ANXIETYEV, DEPFREQ, EMOSUPPORT, CVDSYMP, REGION) %>% 
+  dplyr::select(AGE, SEX, RACENEW, INCFAM07ON, HEALTH, MOD10DMIN, ANXIETYEV, DEPFREQ, EMOSUPPORT, CVDSYMP, REGION) %>% 
   filter(MOD10DMIN != 000) %>% 
   filter(ANXIETYEV != 0) %>% 
   filter(DEPFREQ != 0) %>% 
   filter(EMOSUPPORT != 0) %>% 
   filter(CVDSYMP != 0)
-
-data %>% summary()
 ```
 
 ```{r}
 data$AGE[data$AGE == 997] = NA
 data$AGE[data$AGE == 999] = NA
-
-summary(data$AGE)
 ```
 
 ```{r}
@@ -50,8 +47,6 @@ data$sexcat <- NA
 data$sexcat[data$SEX == 1] = "male"
 data$sexcat[data$SEX == 2] = "female"
 data$sexcat <- as.factor(data$sexcat)
-
-summary(data$sexcat)
 ```
 
 ```{r}
@@ -62,8 +57,6 @@ data$racecat[data$RACENEW == 300] = "non-white"
 data$racecat[data$RACENEW == 400] = "non-white"
 data$racecat[data$RACENEW > 400 & data$RACENEW < 900] = "non-white"
 data$racecat <- as.factor(data$racecat)
-
-summary(data$racecat)
 ```
 
 ```{r}
@@ -74,8 +67,6 @@ data$incomecat[data$INCFAM07ON == 22] = "$50,000-$99,999"
 data$incomecat[data$INCFAM07ON == 23] = "$50,000-$99,999"
 data$incomecat[data$INCFAM07ON == 24] = "over $100,000"
 data$incomecat <- factor(data$incomecat, levels = c("under $49,999", "$50,000-$99,999", "over $100,000"))
-
-summary(data$incomecat)
 ```
 
 ```{r}
@@ -86,14 +77,10 @@ data$healthcat[data$HEALTH == 3] = "good"
 data$healthcat[data$HEALTH == 4] = "fair"
 data$healthcat[data$HEALTH == 5] = "poor"
 data$healthcat <- factor(data$healthcat, levels = c("good", "fair", "poor"))
-
-summary(data$healthcat)
 ```
 
 ```{r}
 data$MOD10DMIN[data$MOD10DMIN %in% c(996, 997, 998, 999)] = NA
-
-summary(data$MOD10DMIN)
 ```
 
 ```{r}
@@ -101,8 +88,6 @@ data$anxiety <- NA
 data$anxiety[data$ANXIETYEV == 1] = "No"
 data$anxiety[data$ANXIETYEV == 2] = "Yes"
 data$anxiety <- factor(data$anxiety, levels = c("No", "Yes"))
-
-summary(data$anxiety)
 ```
 
 ```{r}
@@ -113,8 +98,6 @@ data$depress[data$DEPFREQ == 3] = "weekly or monthly"
 data$depress[data$DEPFREQ == 4] = "yearly"
 data$depress[data$DEPFREQ == 5] = "never"
 data$depress <- factor(data$depress, levels = c("never", "daily", "weekly or monthly", "yearly"))
-
-summary(data$depress)
 ```
 
 ```{r}
@@ -125,8 +108,6 @@ data$esupport[data$EMOSUPPORT == 3] = "sometimes-never"
 data$esupport[data$EMOSUPPORT == 4] = "sometimes-never"
 data$esupport[data$EMOSUPPORT == 5] = "sometimes-never"
 data$esupport <- factor(data$esupport, levels = c("always", "usually", "sometimes-never"))
-
-summary(data$esupport)
 ```
 
 ```{r}
@@ -136,8 +117,6 @@ data$sympt[data$CVDSYMP == 2] = "mild symptoms"
 data$sympt[data$CVDSYMP == 3] = "moderate symptoms"
 data$sympt[data$CVDSYMP == 4] = "severe symptoms"
 data$sympt <- factor(data$sympt, levels = c("no symptoms", "mild symptoms", "moderate symptoms", "severe symptoms"))
-
-summary(data$sympt)
 ```
 
 ```{r}
@@ -147,13 +126,11 @@ data$reg[data$REGION == 2] = "midwest"
 data$reg[data$REGION == 3] = "south"
 data$reg[data$REGION == 4] = "west"
 data$reg <- factor(data$reg, levels = c("northeast", "midwest", "south", "west"))
-
-summary(data$reg)
 ```
 
 ```{r}
 data <- data %>% 
-  select(12:20, AGE, MOD10DMIN)
+  dplyr::select(12:20, AGE, MOD10DMIN)
 
 data %>% 
   summary()
@@ -165,21 +142,60 @@ dim(data)[1]*0.05
 
 ## Anxiety - logistic
 
-```{r}
-data_logis <- data %>% select(-depress) %>% drop_na()
+```{r, message=FALSE}
+data_logis <- data %>% dplyr::select(-depress) %>% drop_na()
 # data_logis <- upsample(data_logis, "anxiety")
 
-logis1 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + reg + esupport + incomecat, family = binomial, data = data_logis)
-logis2 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + esupport, family = binomial, data = data_logis)
-logis3 <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt + esupport, family = binomial, data = data_logis)
-logis4 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt, family = binomial, data = data_logis)
-logis5 <- glm(anxiety ~ AGE + MOD10DMIN + healthcat + sympt + esupport, family = binomial, data = data_logis)
-logis6 <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt, family = binomial, data = data_logis)
-logis7 <- glm(anxiety ~ AGE + healthcat + sympt, family = binomial, data = data_logis)
+logis1 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + reg + esupport + incomecat,
+              family = binomial, data = data_logis)
+logis2 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis3 <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis4 <- glm(anxiety ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt,
+              family = binomial, data = data_logis)
+logis5 <- glm(anxiety ~ AGE + MOD10DMIN + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis6 <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt,
+              family = binomial, data = data_logis)
+logis7 <- glm(anxiety ~ AGE + healthcat + sympt,
+              family = binomial, data = data_logis)
+```
 
-data.frame(MODEL=c("logis1","logis2","logis3","logis4","logis5","logis6","logis7"),
-           AIC=c(AIC(logis1),AIC(logis2),AIC(logis3),AIC(logis4),AIC(logis5),AIC(logis6),AIC(logis7)),
-           BIC=c(BIC(logis1),BIC(logis2),BIC(logis3),BIC(logis4),BIC(logis5),BIC(logis6),BIC(logis7)))
+```{r}
+anova(logis2,logis1,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis3,logis2,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis4,logis2,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis5,logis2,test="Chisq")$`Pr(>Chi)` # p<<0.05
+
+anova(logis6,logis3,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis6,logis4,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis7,logis6,test="Chisq")$`Pr(>Chi)` # p<<0.05
+
+# logis6 based on LRT
+```
+
+```{r}
+# anova(logis2,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# anova(logis3,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# anova(logis4,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# anova(logis5,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# anova(logis6,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# anova(logis7,logis1,test="Chisq")$`Pr(>Chi)` # p<<0.05
+# 
+# # logis1 based on LRT
+```
+
+```{r}
+# no significant interaction
+
+logis3_e <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt:esupport,
+              family = binomial, data = data_logis)
+logis6_h <- glm(anxiety ~ AGE + sexcat + racecat + healthcat:sympt,
+              family = binomial, data = data_logis)
+
+anova(logis6,logis6_h,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis3,logis3_e,test="Chisq")$`Pr(>Chi)` # p>0.05
 ```
 
 ```{r}
@@ -199,22 +215,32 @@ tlogis4$term[tlogis4$p.value < 0.05]
 tlogis5$term[tlogis5$p.value < 0.05]
 tlogis6$term[tlogis6$p.value < 0.05]
 tlogis7$term[tlogis7$p.value < 0.05]
-```
 
+# logis2, logis3 based on number of significant covariates
+# OR
+# logis1, logis2, logis3, logis5 based on number of significant covariates
+```
 
 ```{r}
 # hist(logis$fitted, main="p-hats")
 # hist(hatvalues(logis), main="hat-values")
 
-# options(digits=7)
-# hoslem.test(logis1$anxiety,fitted(logis1),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis2),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis3),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis4),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis5),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis6),g=10)
-# hoslem.test(model.frame(data_logis)$anxiety,fitted(logis7),g=10)
- 
+# H0: fit of the model is adequate
+options(digits=7)
+hoslem.test(logis1$y,fitted(logis1),g=10)
+hoslem.test(logis2$y,fitted(logis2),g=10)
+hoslem.test(logis3$y,fitted(logis3),g=10)
+hoslem.test(logis4$y,fitted(logis4),g=10)
+hoslem.test(logis5$y,fitted(logis5),g=10)
+hoslem.test(logis6$y,fitted(logis6),g=10)
+hoslem.test(logis7$y,fitted(logis7),g=10)
+
+# logis1, logis5, logis7, logis3, logis6, logis2 based on H-L GOF
+# OR
+# logis3 based on H-L GOF
+```
+
+```{r, message=FALSE}
 predprob1 <- predict(logis1,type=c("response"))
 roccurve1 <- roc(data_logis$anxiety ~ predprob1)
 predprob2 <- predict(logis2,type=c("response"))
@@ -231,14 +257,24 @@ predprob7 <- predict(logis7,type=c("response"))
 roccurve7 <- roc(data_logis$anxiety ~ predprob7)
 ```
 
-
 ```{r}
 data.frame(MODEL=c("logis1","logis2","logis3","logis4","logis5","logis6","logis7"),
            AIC=c(AIC(logis1),AIC(logis2),AIC(logis3),AIC(logis4),AIC(logis5),AIC(logis6),AIC(logis7)),
            BIC=c(BIC(logis1),BIC(logis2),BIC(logis3),BIC(logis4),BIC(logis5),BIC(logis6),BIC(logis7)),
            AUC=c(auc(roccurve1),auc(roccurve2),auc(roccurve3),auc(roccurve4),auc(roccurve5),auc(roccurve6),auc(roccurve7)))
+# logis3, logis6 based on AIC
+# logis7, logis6 based on BIC
+# logis1, logis3, logis2, logis6 based on AUC
+# OR
+# logis3, logis2, logis6 based on AIC
+# logis6, logis4, logis3 based on BIC
+# logis1, logis2, logis3, logis4 based on AUC 
 
 # stepModel <- step(logis1, direction=c("both"))
+# sexcat + racecat + healthcat + esupport based on stepwise selection
+# OR
+# AGE + sexcat + racecat + healthcat + esupport + incomecat based on stepwise selection
+
 pred<-ifelse(predict(logis3,type="response")>0.5,"Yes","No")
 actu<-data_logis$anxiety
 confusionMatrix(table(pred,actu))
@@ -247,27 +283,83 @@ pred<-ifelse(predict(logis6,type="response")>0.5,"Yes","No")
 actu<-data_logis$anxiety
 confusionMatrix(table(pred,actu))
 
-VIF(logis3)
-VIF(logis6)
+VIF(logis1) # no collinearity
+VIF(logis3) # no collinearity
+VIF(logis6) # no collinearity
 ```
 
 ## Depression - multinomial & ordinal
 
+```{r, message=FALSE, results='hide'}
+data_multi <- data %>% dplyr::select(-anxiety) %>% drop_na()
+# data_multi <- upsample(data_multi, "depress")
+
+multi1 <- multinom(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + reg + esupport + incomecat, data = data_multi)
+multi2 <- multinom(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + esupport, data = data_multi)
+multi3 <- multinom(depress ~ AGE + sexcat + racecat + healthcat + sympt + esupport, data = data_multi)
+multi4 <- multinom(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt, data = data_multi)
+multi5 <- multinom(depress ~ AGE + MOD10DMIN + healthcat + sympt + esupport, data = data_multi)
+multi6 <- multinom(depress ~ AGE + sexcat + racecat + healthcat + sympt, data = data_multi)
+multi7 <- multinom(depress ~ AGE + healthcat + sympt, data = data_multi)
+```
+
 ```{r}
-data_multi <- data %>% select(-anxiety) %>% drop_na()
-# data_multi <- upsample(data_multi, "depression")
+anova(multi2,multi1,test="Chisq")$`Pr(Chi)` # p>0.05
+anova(multi3,multi2,test="Chisq")$`Pr(Chi)` # p>0.05
+anova(multi4,multi2,test="Chisq")$`Pr(Chi)` # p<<0.05
+anova(multi5,multi3,test="Chisq")$`Pr(Chi)` # p>0.05
 
-multi1 <- glm(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + reg + esupport + incomecat, family = binomial, data = data_multi)
-multi2 <- glm(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt + esupport, family = binomial, data = data_multi)
-multi3 <- glm(depress ~ AGE + sexcat + racecat + healthcat + sympt + esupport, family = binomial, data = data_multi)
-multi4 <- glm(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sympt, family = binomial, data = data_multi)
-multi5 <- glm(depress ~ AGE + MOD10DMIN + healthcat + sympt + esupport, family = binomial, data = data_multi)
-multi6 <- glm(depress ~ AGE + sexcat + racecat + healthcat + sympt, family = binomial, data = data_multi)
-multi7 <- glm(depress ~ AGE + healthcat + sympt, family = binomial, data = data_multi)
+anova(multi6,multi5,test="Chisq")$`Pr(Chi)` # p<<0.05
+anova(multi7,multi5,test="Chisq")$`Pr(Chi)` # p<<0.05
 
+# multi5 based on LRT
+```
+
+```{r}
+# anova(multi2,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# anova(multi3,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# anova(multi4,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# anova(multi5,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# anova(multi6,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# anova(multi7,multi1,test="Chisq")$`Pr(Chi)` # p<<0.05
+# 
+# # multi1 based on LRT
+```
+
+```{r, message=FALSE, results='hide'}
+# no significant interaction
+
+multi3_e <- multinom(depress ~ AGE + sexcat + racecat + healthcat + sympt:esupport, data = data_multi)
+multi5_h <- multinom(depress ~ AGE + MOD10DMIN + healthcat:sympt + esupport, data = data_multi)
+
+anova(multi5,multi5_h,test="Chisq")$`Pr(Chi)` # p>0.05
+anova(multi3,multi3_e,test="Chisq")$`Pr(Chi)` # p>0.05
+```
+
+```{r}
 data.frame(MODEL=c("multi1","multi2","multi3","multi4","multi5","multi6","multi7"),
            AIC=c(AIC(multi1),AIC(multi2),AIC(multi3),AIC(multi4),AIC(multi5),AIC(multi6),AIC(multi7)),
            BIC=c(BIC(multi1),BIC(multi2),BIC(multi3),BIC(multi4),BIC(multi5),BIC(multi6),BIC(multi7)))
+
+# multi5, multi3 based on AIC
+# multi7, multi5 based on BIC
+# OR
+# multi1, multi2, multi5 based on AIC
+# multi5, multi1 based on BIC
+```
+
+```{r}
+logitgof(data_multi$depress, fitted(multi1))
+logitgof(data_multi$depress, fitted(multi2))
+logitgof(data_multi$depress, fitted(multi3))
+logitgof(data_multi$depress, fitted(multi4))
+logitgof(data_multi$depress, fitted(multi5))
+logitgof(data_multi$depress, fitted(multi6))
+logitgof(data_multi$depress, fitted(multi7))
+
+# all p>0.05
+# OR
+# all p<<0.05
 ```
 
 ```{r}
@@ -287,14 +379,39 @@ tmulti4$term[tmulti4$p.value < 0.05]
 tmulti5$term[tmulti5$p.value < 0.05]
 tmulti6$term[tmulti6$p.value < 0.05]
 tmulti7$term[tmulti7$p.value < 0.05]
+
+# multi1 based on number of significant covariates
 ```
 
 ```{r}
+# fitted probs close to actual probs
+
+cbind(fitted(multi5)[data_multi$sympt == "no symptoms",][1,],fitted(multi5)[data_multi$sympt == "mild symptoms",][1,],fitted(multi5)[data_multi$sympt == "moderate symptoms",][1,],fitted(multi5)[data_multi$sympt == "severe symptoms",][1,])
+prop.table(table(data_multi$depress,data_multi$sympt),2)
+```
+
+```{r}
+# never
+plot(na.omit(data_multi$sympt), fitted(multi5)[,1])
+
+# daily
+plot(na.omit(data_multi$sympt), fitted(multi5)[,2])
+
+# weekly or monthly
+plot(na.omit(data_multi$sympt), fitted(multi5)[,3])
+
+# yearly
+plot(na.omit(data_multi$sympt), fitted(multi5)[,4])
+```
+
+```{r, eval=FALSE}
+# proportional assumption does not hold
+
 data_multi$depressdaily <- ifelse(data_multi$depress=="daily", 1, 0)
 data_multi$depressnever <- ifelse(data_multi$depress=="never", 1, 0)
-moddaily <- glm(depressdaily ~ ., family=binomial, data=data_multi %>% select(-depress, -depressnever)) 
+moddaily <- glm(depressdaily ~ ., family=binomial, data=data_multi %>% dplyr::select(-depress, -depressnever)) 
 summary(moddaily)
-modnever <- glm(depressnever ~ ., family=binomial, data=data_multi %>% select(-depress, -depressdaily)) 
+modnever <- glm(depressnever ~ ., family=binomial, data=data_multi %>% dplyr::select(-depress, -depressdaily)) 
 summary(modnever)
 coef(moddaily)[10:12]
 coef(moddaily)[10] + c(-1, 1)*1.96*sqrt(vcov(moddaily)[10,10])
