@@ -335,42 +335,15 @@ logis6 <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt,
               family = binomial, data = data_logis)
 logis7 <- glm(anxiety ~ AGE + healthcat + sympt,
               family = binomial, data = data_logis)
+logis8 <- glm(anxiety ~ sexcat + racecat + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis9 <- glm(anxiety ~ AGE + racecat + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis10 <- glm(anxiety ~ AGE + sexcat + healthcat + sympt + esupport,
+              family = binomial, data = data_logis)
+logis11 <- glm(anxiety ~ AGE + sexcat + racecat + sympt + esupport,
+              family = binomial, data = data_logis)
 ```
-
-``` r
-logis1$coefficients[8:10]
-```
-
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##           -0.247697969           -0.005964833            0.187867083
-
-``` r
-logis2$coefficients[8:10]
-```
-
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##            -0.29003136            -0.09441099             0.16756527
-
-``` r
-logis3$coefficients[7:9]
-```
-
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##            -0.28897865            -0.09247586             0.16997915
-
-``` r
-logis4$coefficients[8:10]
-```
-
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##            -0.25547872            -0.07354255             0.16603042
-
-``` r
-logis5$coefficients[6:8]
-```
-
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##             -0.1809428              0.0738149              0.2229652
 
 ``` r
 logis6$coefficients[7:9]
@@ -380,11 +353,114 @@ logis6$coefficients[7:9]
     ##            -0.25501804            -0.07268736             0.16699790
 
 ``` r
-logis7$coefficients[5:7]
+# logis1$coefficients[8:10]
+# logis2$coefficients[8:10]
+# logis3$coefficients[7:9]
+# logis4$coefficients[8:10]
+# logis5$coefficients[6:8]
+# logis6$coefficients[7:9]
+# logis7$coefficients[5:7]
+# logis8$coefficients[6:8]
+# logis9$coefficients[6:8]
+# logis10$coefficients[6:8]
+# logis11$coefficients[5:7]
+
+# # test MOD10DMIN
+# (logis3$coefficients[7]-logis2$coefficients[8])/logis2$coefficients[8]*100
+# (logis3$coefficients[8]-logis2$coefficients[9])/logis2$coefficients[9]*100
+# (logis3$coefficients[9]-logis2$coefficients[10])/logis2$coefficients[10]*100
+
+# # test esupport - >10%
+# (logis6$coefficients[7]-logis3$coefficients[7])/logis3$coefficients[7]*100
+# (logis6$coefficients[8]-logis3$coefficients[8])/logis3$coefficients[8]*100
+# (logis6$coefficients[9]-logis3$coefficients[9])/logis3$coefficients[9]*100
+
+# test AGE - >10%
+(logis8$coefficients[6]-logis3$coefficients[7])/logis3$coefficients[7]*100
 ```
 
-    ##     symptmild symptoms symptmoderate symptoms   symptsevere symptoms 
-    ##             -0.1505163              0.1055298              0.2298666
+    ## symptmild symptoms 
+    ##          -7.247651
+
+``` r
+(logis8$coefficients[7]-logis3$coefficients[8])/logis3$coefficients[8]*100
+```
+
+    ## symptmoderate symptoms 
+    ##             -0.5919602
+
+``` r
+(logis8$coefficients[8]-logis3$coefficients[9])/logis3$coefficients[9]*100
+```
+
+    ## symptsevere symptoms 
+    ##            -18.81389
+
+``` r
+# test sexcat - >10%
+(logis9$coefficients[6]-logis3$coefficients[7])/logis3$coefficients[7]*100
+```
+
+    ## symptmild symptoms 
+    ##           2.654435
+
+``` r
+(logis9$coefficients[7]-logis3$coefficients[8])/logis3$coefficients[8]*100
+```
+
+    ## symptmoderate symptoms 
+    ##              -40.22001
+
+``` r
+(logis9$coefficients[8]-logis3$coefficients[9])/logis3$coefficients[9]*100
+```
+
+    ## symptsevere symptoms 
+    ##            -3.248635
+
+``` r
+# test racecat - >10%
+(logis10$coefficients[6]-logis3$coefficients[7])/logis3$coefficients[7]*100
+```
+
+    ## symptmild symptoms 
+    ##          -46.63908
+
+``` r
+(logis10$coefficients[7]-logis3$coefficients[8])/logis3$coefficients[8]*100
+```
+
+    ## symptmoderate symptoms 
+    ##               -170.492
+
+``` r
+(logis10$coefficients[8]-logis3$coefficients[9])/logis3$coefficients[9]*100
+```
+
+    ## symptsevere symptoms 
+    ##             42.57754
+
+``` r
+# test healthcat - >10%
+(logis11$coefficients[5]-logis3$coefficients[7])/logis3$coefficients[7]*100
+```
+
+    ## symptmild symptoms 
+    ##          -8.735373
+
+``` r
+(logis11$coefficients[6]-logis3$coefficients[8])/logis3$coefficients[8]*100
+```
+
+    ## symptmoderate symptoms 
+    ##               60.36972
+
+``` r
+(logis11$coefficients[7]-logis3$coefficients[9])/logis3$coefficients[9]*100
+```
+
+    ## symptsevere symptoms 
+    ##             43.66862
 
 ``` r
 anova(logis2,logis1,test="Chisq")$`Pr(>Chi)` # p>0.05
@@ -435,9 +511,11 @@ anova(logis7,logis6,test="Chisq")$`Pr(>Chi)` # p<<0.05
 ``` r
 # no significant interaction
 
-logis3_e <- glm(anxiety ~ AGE + sexcat + racecat + healthcat + sympt:esupport,
-              family = binomial, data = data_logis)
 logis6_h <- glm(anxiety ~ AGE + sexcat + racecat + healthcat:sympt,
+              family = binomial, data = data_logis)
+logis6_r <- glm(anxiety ~ AGE + sexcat + racecat:sympt + healthcat,
+              family = binomial, data = data_logis)
+logis6_s <- glm(anxiety ~ AGE + sexcat:sympt + racecat + healthcat,
               family = binomial, data = data_logis)
 
 anova(logis6,logis6_h,test="Chisq")$`Pr(>Chi)` # p>0.05
@@ -446,10 +524,16 @@ anova(logis6,logis6_h,test="Chisq")$`Pr(>Chi)` # p>0.05
     ## [1]        NA 0.2869032
 
 ``` r
-anova(logis3,logis3_e,test="Chisq")$`Pr(>Chi)` # p>0.05
+anova(logis6,logis6_r,test="Chisq")$`Pr(>Chi)` # p>0.05
 ```
 
-    ## [1]        NA 0.2411439
+    ## [1]        NA 0.6422804
+
+``` r
+anova(logis6,logis6_s,test="Chisq")$`Pr(>Chi)` # p>0.05
+```
+
+    ## [1]        NA 0.3955457
 
 ``` r
 # options(scipen = 999)
@@ -746,6 +830,10 @@ multi4 <- multinom(depress ~ AGE + sexcat + racecat + MOD10DMIN + healthcat + sy
 multi5 <- multinom(depress ~ AGE + MOD10DMIN + healthcat + sympt + esupport, data = data_multi)
 multi6 <- multinom(depress ~ AGE + sexcat + racecat + healthcat + sympt, data = data_multi)
 multi7 <- multinom(depress ~ AGE + healthcat + sympt, data = data_multi)
+multi8 <- multinom(depress ~ sexcat + racecat + healthcat + sympt, data = data_multi)
+multi9 <- multinom(depress ~ AGE + racecat + healthcat + sympt, data = data_multi)
+multi10 <- multinom(depress ~ AGE + sexcat + healthcat + sympt, data = data_multi)
+multi11 <- multinom(depress ~ AGE + sexcat + racecat + sympt, data = data_multi)
 ```
 
 ``` r
@@ -840,6 +928,253 @@ coef(multi7)[,5:7]
     ## yearly                       1.0113661
 
 ``` r
+coef(multi8)[,6:8]
+```
+
+    ##                   symptmild symptoms symptmoderate symptoms
+    ## daily                     -1.8476615             -0.3362301
+    ## weekly or monthly         -0.1705624              0.4410487
+    ## yearly                     0.3466814              1.0479237
+    ##                   symptsevere symptoms
+    ## daily                        1.0351213
+    ## weekly or monthly            0.3613692
+    ## yearly                       0.9516154
+
+``` r
+coef(multi9)[,6:8]
+```
+
+    ##                   symptmild symptoms symptmoderate symptoms
+    ## daily                     -1.9205865             -0.3060473
+    ## weekly or monthly         -0.2455915              0.4593797
+    ## yearly                     0.2800716              1.0530914
+    ##                   symptsevere symptoms
+    ## daily                        1.0501802
+    ## weekly or monthly            0.4456849
+    ## yearly                       0.9996263
+
+``` r
+coef(multi10)[,6:8]
+```
+
+    ##                   symptmild symptoms symptmoderate symptoms
+    ## daily                     -1.7099026             -0.1238559
+    ## weekly or monthly         -0.1683309              0.5331414
+    ## yearly                     0.3090951              1.0723951
+    ##                   symptsevere symptoms
+    ## daily                        1.1521669
+    ## weekly or monthly            0.4918571
+    ## yearly                       1.0231320
+
+``` r
+coef(multi11)[,5:7]
+```
+
+    ##                   symptmild symptoms symptmoderate symptoms
+    ## daily                     -1.7795110             -0.4365974
+    ## weekly or monthly         -0.1996737              0.4003010
+    ## yearly                     0.2808907              1.0510576
+    ##                   symptsevere symptoms
+    ## daily                        1.1863228
+    ## weekly or monthly            0.4998809
+    ## yearly                       0.9991090
+
+``` r
+# # test MOD10DMIN
+# (coef(multi3)[1,7]-coef(multi2)[1,8])/coef(multi2)[1,8]*100
+# (coef(multi3)[1,8]-coef(multi2)[1,9])/coef(multi2)[1,9]*100
+# (coef(multi3)[1,9]-coef(multi2)[1,10])/coef(multi2)[1,10]*100
+# 
+# (coef(multi3)[2,7]-coef(multi2)[2,8])/coef(multi2)[2,8]*100
+# (coef(multi3)[2,8]-coef(multi2)[2,9])/coef(multi2)[2,9]*100
+# (coef(multi3)[2,9]-coef(multi2)[2,10])/coef(multi2)[2,10]*100
+# 
+# (coef(multi3)[3,7]-coef(multi2)[3,8])/coef(multi2)[3,8]*100
+# (coef(multi3)[3,8]-coef(multi2)[3,9])/coef(multi2)[3,9]*100
+# (coef(multi3)[3,9]-coef(multi2)[3,10])/coef(multi2)[3,10]*100
+```
+
+``` r
+# test AGE - >10%
+(coef(multi8)[1,6]-coef(multi6)[1,7])/coef(multi6)[1,7]*100
+```
+
+    ## [1] -1.417718
+
+``` r
+(coef(multi8)[1,7]-coef(multi6)[1,8])/coef(multi6)[1,8]*100
+```
+
+    ## [1] 1.184578
+
+``` r
+(coef(multi8)[1,8]-coef(multi6)[1,9])/coef(multi6)[1,9]*100
+```
+
+    ## [1] -2.797465
+
+``` r
+(coef(multi8)[2,6]-coef(multi6)[2,7])/coef(multi6)[2,7]*100
+```
+
+    ## [1] -27.95922
+
+``` r
+(coef(multi8)[2,7]-coef(multi6)[2,8])/coef(multi6)[2,8]*100
+```
+
+    ## [1] -2.267965
+
+``` r
+(coef(multi8)[2,8]-coef(multi6)[2,9])/coef(multi6)[2,9]*100
+```
+
+    ## [1] -20.51355
+
+``` r
+(coef(multi8)[3,6]-coef(multi6)[3,7])/coef(multi6)[3,7]*100
+```
+
+    ## [1] 19.52364
+
+``` r
+(coef(multi8)[3,7]-coef(multi6)[3,8])/coef(multi6)[3,8]*100
+```
+
+    ## [1] -0.2323055
+
+``` r
+(coef(multi8)[3,8]-coef(multi6)[3,9])/coef(multi6)[3,9]*100
+```
+
+    ## [1] -5.954459
+
+``` r
+# # test sexcat
+# (coef(multi9)[1,6]-coef(multi6)[1,7])/coef(multi6)[1,7]*100
+# (coef(multi9)[1,7]-coef(multi6)[1,8])/coef(multi6)[1,8]*100
+# (coef(multi9)[1,8]-coef(multi6)[1,9])/coef(multi6)[1,9]*100
+# 
+# (coef(multi9)[2,6]-coef(multi6)[2,7])/coef(multi6)[2,7]*100
+# (coef(multi9)[2,7]-coef(multi6)[2,8])/coef(multi6)[2,8]*100
+# (coef(multi9)[2,8]-coef(multi6)[2,9])/coef(multi6)[2,9]*100
+# 
+# (coef(multi9)[3,6]-coef(multi6)[3,7])/coef(multi6)[3,7]*100
+# (coef(multi9)[3,7]-coef(multi6)[3,8])/coef(multi6)[3,8]*100
+# (coef(multi9)[3,8]-coef(multi6)[3,9])/coef(multi6)[3,9]*100
+```
+
+``` r
+# test racecat - >10%
+(coef(multi10)[1,6]-coef(multi6)[1,7])/coef(multi6)[1,7]*100
+```
+
+    ## [1] -8.767866
+
+``` r
+(coef(multi10)[1,7]-coef(multi6)[1,8])/coef(multi6)[1,8]*100
+```
+
+    ## [1] -62.72701
+
+``` r
+(coef(multi10)[1,8]-coef(multi6)[1,9])/coef(multi6)[1,9]*100
+```
+
+    ## [1] 8.19364
+
+``` r
+(coef(multi10)[2,6]-coef(multi6)[2,7])/coef(multi6)[2,7]*100
+```
+
+    ## [1] -28.90174
+
+``` r
+(coef(multi10)[2,7]-coef(multi6)[2,8])/coef(multi6)[2,8]*100
+```
+
+    ## [1] 18.13886
+
+``` r
+(coef(multi10)[2,8]-coef(multi6)[2,9])/coef(multi6)[2,9]*100
+```
+
+    ## [1] 8.188428
+
+``` r
+(coef(multi10)[3,6]-coef(multi6)[3,7])/coef(multi6)[3,7]*100
+```
+
+    ## [1] 6.565191
+
+``` r
+(coef(multi10)[3,7]-coef(multi6)[3,8])/coef(multi6)[3,8]*100
+```
+
+    ## [1] 2.097497
+
+``` r
+(coef(multi10)[3,8]-coef(multi6)[3,9])/coef(multi6)[3,9]*100
+```
+
+    ## [1] 1.113331
+
+``` r
+# test healthcat - >10%
+(coef(multi11)[1,5]-coef(multi6)[1,7])/coef(multi6)[1,7]*100
+```
+
+    ## [1] -5.053899
+
+``` r
+(coef(multi11)[1,6]-coef(multi6)[1,8])/coef(multi6)[1,8]*100
+```
+
+    ## [1] 31.38894
+
+``` r
+(coef(multi11)[1,7]-coef(multi6)[1,9])/coef(multi6)[1,9]*100
+```
+
+    ## [1] 11.40103
+
+``` r
+(coef(multi11)[2,5]-coef(multi6)[2,7])/coef(multi6)[2,7]*100
+```
+
+    ## [1] -15.66345
+
+``` r
+(coef(multi11)[2,6]-coef(multi6)[2,8])/coef(multi6)[2,8]*100
+```
+
+    ## [1] -11.29726
+
+``` r
+(coef(multi11)[2,7]-coef(multi6)[2,9])/coef(multi6)[2,9]*100
+```
+
+    ## [1] 9.95335
+
+``` r
+(coef(multi11)[3,5]-coef(multi6)[3,7])/coef(multi6)[3,7]*100
+```
+
+    ## [1] -3.158703
+
+``` r
+(coef(multi11)[3,6]-coef(multi6)[3,8])/coef(multi6)[3,8]*100
+```
+
+    ## [1] 0.06605735
+
+``` r
+(coef(multi11)[3,7]-coef(multi6)[3,9])/coef(multi6)[3,9]*100
+```
+
+    ## [1] -1.260797
+
+``` r
 anova(multi2,multi1,test="Chisq")$`Pr(Chi)` # p>0.05
 ```
 
@@ -876,17 +1211,23 @@ anova(multi7,multi5,test="Chisq")$`Pr(Chi)` # p<<0.05
     ## [1]           NA 2.551386e-05
 
 ``` r
+anova(multi9,multi5,test="Chisq")$`Pr(Chi)` # p<<0.05
+```
+
+    ## [1]           NA 4.615877e-06
+
+``` r
 # multi5 based on LRT
 ```
 
 ``` r
 # no significant interaction
 
-multi3_e <- multinom(depress ~ AGE + sexcat + racecat + healthcat + sympt:esupport, data = data_multi)
-multi5_h <- multinom(depress ~ AGE + MOD10DMIN + healthcat:sympt + esupport, data = data_multi)
+multi6_r <- multinom(depress ~ AGE + sexcat + racecat:sympt + healthcat, data = data_multi)
+multi6_h <- multinom(depress ~ AGE + sexcat + racecat + healthcat:sympt, data = data_multi)
 
-anova(multi5,multi5_h,test="Chisq")$`Pr(Chi)` # p>0.05
-anova(multi3,multi3_e,test="Chisq")$`Pr(Chi)` # p>0.05
+anova(multi6,multi6_h,test="Chisq")$`Pr(Chi)` # p>0.05
+anova(multi6,multi6_r,test="Chisq")$`Pr(Chi)` # p>0.05
 ```
 
 ``` r
@@ -993,75 +1334,17 @@ tmulti5 = tidy(multi5)
 tmulti6 = tidy(multi6)
 tmulti7 = tidy(multi7)
 
-tmulti1$term[tmulti1$p.value < 0.05]
-```
-
-    ##  [1] "(Intercept)"             "healthcatfair"          
-    ##  [3] "regmidwest"              "regsouth"               
-    ##  [5] "regwest"                 "esupportusually"        
-    ##  [7] "esupportsometimes-never" "healthcatfair"          
-    ##  [9] "esupportusually"         "esupportsometimes-never"
-    ## [11] "healthcatpoor"           "symptmoderate symptoms" 
-    ## [13] "symptsevere symptoms"    "regsouth"               
-    ## [15] "esupportusually"         "esupportsometimes-never"
-
-``` r
-tmulti2$term[tmulti2$p.value < 0.05]
-```
-
-    ##  [1] "(Intercept)"             "healthcatfair"          
-    ##  [3] "esupportusually"         "esupportsometimes-never"
-    ##  [5] "(Intercept)"             "healthcatfair"          
-    ##  [7] "esupportusually"         "esupportsometimes-never"
-    ##  [9] "healthcatpoor"           "symptmoderate symptoms" 
-    ## [11] "symptsevere symptoms"    "esupportusually"        
-    ## [13] "esupportsometimes-never"
-
-``` r
-tmulti3$term[tmulti3$p.value < 0.05]
-```
-
-    ##  [1] "(Intercept)"             "healthcatfair"          
-    ##  [3] "esupportusually"         "esupportsometimes-never"
-    ##  [5] "(Intercept)"             "AGE"                    
-    ##  [7] "healthcatfair"           "esupportusually"        
-    ##  [9] "esupportsometimes-never" "healthcatpoor"          
-    ## [11] "symptmoderate symptoms"  "symptsevere symptoms"   
-    ## [13] "esupportusually"         "esupportsometimes-never"
-
-``` r
-tmulti4$term[tmulti4$p.value < 0.05]
-```
-
-    ## [1] "(Intercept)"            "healthcatfair"          "healthcatfair"         
-    ## [4] "healthcatpoor"          "symptmoderate symptoms" "symptsevere symptoms"
-
-``` r
-tmulti5$term[tmulti5$p.value < 0.05]
-```
-
-    ##  [1] "(Intercept)"             "healthcatfair"          
-    ##  [3] "esupportusually"         "esupportsometimes-never"
-    ##  [5] "(Intercept)"             "healthcatfair"          
-    ##  [7] "esupportusually"         "esupportsometimes-never"
-    ##  [9] "healthcatpoor"           "symptmoderate symptoms" 
-    ## [11] "symptsevere symptoms"    "esupportusually"        
-    ## [13] "esupportsometimes-never"
-
-``` r
+# tmulti1$term[tmulti1$p.value < 0.05]
+# tmulti2$term[tmulti2$p.value < 0.05]
+# tmulti3$term[tmulti3$p.value < 0.05]
+# tmulti4$term[tmulti4$p.value < 0.05]
+# tmulti5$term[tmulti5$p.value < 0.05]
+# tmulti7$term[tmulti7$p.value < 0.05]
 tmulti6$term[tmulti6$p.value < 0.05]
 ```
 
     ## [1] "(Intercept)"            "healthcatfair"          "healthcatfair"         
     ## [4] "healthcatpoor"          "symptmoderate symptoms" "symptsevere symptoms"
-
-``` r
-tmulti7$term[tmulti7$p.value < 0.05]
-```
-
-    ## [1] "(Intercept)"            "healthcatfair"          "healthcatpoor"         
-    ## [4] "healthcatfair"          "healthcatpoor"          "symptmoderate symptoms"
-    ## [7] "symptsevere symptoms"
 
 ``` r
 # multi1 based on number of significant covariates
@@ -1095,28 +1378,28 @@ prop.table(table(data_multi$depress,data_multi$sympt),2)
 plot(na.omit(data_multi$sympt), fitted(multi5)[,1])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-39-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-1.png)<!-- -->
 
 ``` r
 # daily
 plot(na.omit(data_multi$sympt), fitted(multi5)[,2])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-39-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
 
 ``` r
 # weekly or monthly
 plot(na.omit(data_multi$sympt), fitted(multi5)[,3])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-39-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-3.png)<!-- -->
 
 ``` r
 # yearly
 plot(na.omit(data_multi$sympt), fitted(multi5)[,4])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-39-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-44-4.png)<!-- -->
 
 ``` r
 # proportional assumption does not hold
