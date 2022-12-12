@@ -611,7 +611,7 @@ prop.table(table(data_multi$depress,data_multi$sympt),2)
 plot(na.omit(data_multi$sympt), fitted(multi5)[,1])
 
 # daily
-plot(na.omit(data_multi$sympt), fitted(multi5)[,2])
+plot(na.omit(data_multi$sympt), fitted(multi5)[,2], main="Figure 1. Predicted Probabilities of Feeling Depressed Daily", xlab="COVID-19 Symptom", ylab="Probability")
 
 # weekly or monthly
 plot(na.omit(data_multi$sympt), fitted(multi5)[,3])
@@ -638,3 +638,94 @@ coef(modnever)[10] + c(-1, 1)*1.96*sqrt(vcov(modnever)[10,10])
 coef(modnever)[11] + c(-1, 1)*1.96*sqrt(vcov(modnever)[11,11])
 coef(modnever)[12] + c(-1, 1)*1.96*sqrt(vcov(modnever)[12,12])
 ```
+
+# Kenny's EDA
+
+```{r}
+# univariate
+hist(data$MOD10DMIN)
+# tally(~data$MOD10FWK)
+
+hist(log(data$MOD10DMIN))
+hist(data$AGE)
+barplot(prop.table(table(data$sympt)))
+barplot(prop.table(table(data$sexcat)))
+barplot(prop.table(table(data$racecat)))
+barplot(prop.table(table(data$incomecat)))
+barplot(prop.table(table(data$healthcat)))
+ggplot(data, aes(sympt, MOD10DMIN)) +   
+  geom_boxplot() +
+  labs(x = "Severity of COVID-19 Symptoms", y = "Duration of Moderate Physical Activity")
+```
+
+We see that the duration of moderate physical activity is heavily right skewed so we log transformed it.
+
+```{r}
+#bivariate
+scatter.smooth(data$AGE, log(data$MOD10DMIN))
+scatter.smooth(data$AGE, (data$MOD10DMIN))
+boxplot(data$MOD10DMIN ~ data$sympt)
+boxplot(data$MOD10DMIN ~ data$racecat)
+boxplot(data$MOD10DMIN ~ data$incomecat)
+boxplot(data$MOD10DMIN ~ data$healthcat)
+```
+
+# Fitting the full model
+
+```{r}
+lm1 <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+      ,data = data)
+
+summary(lm1)
+```
+
+In the full model, we see that after adjusting for the effect of the other variables, none of the COVID symptom levels have a statistically significant effect on the duration of moderate physical activity.
+
+# Effect modifier
+
+```{r}
+# check if anxiety, depression, region or emotional support are effect modifiers of covid symptoms
+lm_anxiety <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + anxiety*sympt,data = data)
+lm_depress <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + depress*sympt,data = data)
+lm_reg <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + reg*sympt,data = data)
+lm_esupport <- lm(log(MOD10DMIN) ~ sexcat + racecat + incomecat + healthcat + sympt + AGE
+          + esupport*sympt,data = data)
+lm_income <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + incomecat*sympt,data = data)
+
+summary(lm_anxiety)
+summary(lm_depress)
+summary(lm_reg)
+summary(lm_esupport)
+summary(lm_income)
+# None are effect modifiers so we will stick with
+lm1 <- lm(log(MOD10DMIN) ~ sexcat + racecat + healthcat + sympt + AGE, data = data)
+
+summary(lm1)
+```
+
+# Diagnosis and Model Evaluation
+
+```{r}
+plot(lm1, 1:6)
+hist(lm1$residuals)
+# 265, 46, 383
+
+# 12/397
+# 0.0302267
+
+# modelling dropping those 
+lm1_outliers <- lm(log(MOD10DMIN) ~ sexcat + racecat + healthcat + sympt + AGE, data = 
+data[-c(46,265, 383),])
+
+summary(lm1_outliers)
+summary(lm1)
+
+# none are above 5 :)
+VIF(lm1) 
+```
+
+From the residual plots, it seems linearity, normality, and equal variance holds.

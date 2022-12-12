@@ -1382,7 +1382,7 @@ plot(na.omit(data_multi$sympt), fitted(multi5)[,1])
 
 ``` r
 # daily
-plot(na.omit(data_multi$sympt), fitted(multi5)[,2])
+plot(na.omit(data_multi$sympt), fitted(multi5)[,2], main="Figure 1. Predicted Probabilities of Feeling Depressed Daily", xlab="COVID-19 Symptom", ylab="Probability")
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-44-2.png)<!-- -->
@@ -1419,3 +1419,556 @@ coef(modnever)[10] + c(-1, 1)*1.96*sqrt(vcov(modnever)[10,10])
 coef(modnever)[11] + c(-1, 1)*1.96*sqrt(vcov(modnever)[11,11])
 coef(modnever)[12] + c(-1, 1)*1.96*sqrt(vcov(modnever)[12,12])
 ```
+
+# Kenny’s EDA
+
+``` r
+# univariate
+hist(data$MOD10DMIN)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-1.png)<!-- -->
+
+``` r
+# tally(~data$MOD10FWK)
+
+hist(log(data$MOD10DMIN))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-2.png)<!-- -->
+
+``` r
+hist(data$AGE)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-3.png)<!-- -->
+
+``` r
+barplot(prop.table(table(data$sympt)))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-4.png)<!-- -->
+
+``` r
+barplot(prop.table(table(data$sexcat)))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-5.png)<!-- -->
+
+``` r
+barplot(prop.table(table(data$racecat)))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-6.png)<!-- -->
+
+``` r
+barplot(prop.table(table(data$incomecat)))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-7.png)<!-- -->
+
+``` r
+barplot(prop.table(table(data$healthcat)))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-46-8.png)<!-- -->
+
+``` r
+ggplot(data, aes(sympt, MOD10DMIN)) +   
+  geom_boxplot() +
+  labs(x = "Severity of COVID-19 Symptoms", y = "Duration of Moderate Physical Activity")
+```
+
+    ## Don't know how to automatically pick scale for object of type
+    ## <haven_labelled/vctrs_vctr/double>. Defaulting to continuous.
+
+![](README_files/figure-gfm/unnamed-chunk-46-9.png)<!-- -->
+
+We see that the duration of moderate physical activity is heavily right
+skewed so we log transformed it.
+
+``` r
+#bivariate
+scatter.smooth(data$AGE, log(data$MOD10DMIN))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-1.png)<!-- -->
+
+``` r
+scatter.smooth(data$AGE, (data$MOD10DMIN))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-2.png)<!-- -->
+
+``` r
+boxplot(data$MOD10DMIN ~ data$sympt)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-3.png)<!-- -->
+
+``` r
+boxplot(data$MOD10DMIN ~ data$racecat)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-4.png)<!-- -->
+
+``` r
+boxplot(data$MOD10DMIN ~ data$incomecat)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-5.png)<!-- -->
+
+``` r
+boxplot(data$MOD10DMIN ~ data$healthcat)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-47-6.png)<!-- -->
+
+# Fitting the full model
+
+``` r
+lm1 <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+      ,data = data)
+
+summary(lm1)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8528 -0.4554  0.0505  0.2810  2.1917 
+    ## 
+    ## Coefficients:
+    ##                         Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)             3.978605   0.144534  27.527   <2e-16 ***
+    ## sexcatmale              0.041469   0.069951   0.593   0.5536    
+    ## racecatwhite            0.002340   0.094338   0.025   0.9802    
+    ## healthcatfair          -0.146695   0.125329  -1.170   0.2425    
+    ## healthcatpoor          -0.145437   0.401778  -0.362   0.7176    
+    ## symptmild symptoms      0.029941   0.113782   0.263   0.7926    
+    ## symptmoderate symptoms  0.048412   0.114314   0.423   0.6722    
+    ## symptsevere symptoms    0.086427   0.125649   0.688   0.4920    
+    ## AGE                    -0.003857   0.002139  -1.803   0.0721 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6916 on 388 degrees of freedom
+    ## Multiple R-squared:  0.01445,    Adjusted R-squared:  -0.005874 
+    ## F-statistic: 0.7109 on 8 and 388 DF,  p-value: 0.6819
+
+In the full model, we see that after adjusting for the effect of the
+other variables, none of the COVID symptom levels have a statistically
+significant effect on the duration of moderate physical activity.
+
+# Effect modifier
+
+``` r
+# check if anxiety, depression, region or emotional support are effect modifiers of covid symptoms
+lm_anxiety <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + anxiety*sympt,data = data)
+lm_depress <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + depress*sympt,data = data)
+lm_reg <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + reg*sympt,data = data)
+lm_esupport <- lm(log(MOD10DMIN) ~ sexcat + racecat + incomecat + healthcat + sympt + AGE
+          + esupport*sympt,data = data)
+lm_income <- lm(log(MOD10DMIN) ~ sexcat + racecat  + healthcat + sympt + AGE
+          + incomecat*sympt,data = data)
+
+summary(lm_anxiety)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE + anxiety * sympt, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8812 -0.4445  0.0583  0.3002  2.1915 
+    ## 
+    ## Coefficients:
+    ##                                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)                        3.972611   0.153746  25.839   <2e-16 ***
+    ## sexcatmale                         0.057663   0.070520   0.818   0.4140    
+    ## racecatwhite                       0.004267   0.094779   0.045   0.9641    
+    ## healthcatfair                     -0.155687   0.126800  -1.228   0.2203    
+    ## healthcatpoor                     -0.083205   0.406876  -0.204   0.8381    
+    ## symptmild symptoms                 0.074633   0.124145   0.601   0.5481    
+    ## symptmoderate symptoms             0.043322   0.125116   0.346   0.7293    
+    ## symptsevere symptoms               0.033188   0.138890   0.239   0.8113    
+    ## AGE                               -0.004154   0.002155  -1.928   0.0546 .  
+    ## anxietyYes                         0.070098   0.254278   0.276   0.7829    
+    ## symptmild symptoms:anxietyYes     -0.298046   0.303079  -0.983   0.3260    
+    ## symptmoderate symptoms:anxietyYes  0.021492   0.298784   0.072   0.9427    
+    ## symptsevere symptoms:anxietyYes    0.232228   0.322205   0.721   0.4715    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6911 on 384 degrees of freedom
+    ## Multiple R-squared:  0.02624,    Adjusted R-squared:  -0.004189 
+    ## F-statistic: 0.8623 on 12 and 384 DF,  p-value: 0.5859
+
+``` r
+summary(lm_depress)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE + depress * sympt, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8764 -0.4473  0.0463  0.2900  2.1166 
+    ## 
+    ## Coefficients:
+    ##                                                   Estimate Std. Error t value
+    ## (Intercept)                                      3.9491175  0.1676639  23.554
+    ## sexcatmale                                       0.0501135  0.0712170   0.704
+    ## racecatwhite                                     0.0030680  0.0961915   0.032
+    ## healthcatfair                                   -0.1207726  0.1318023  -0.916
+    ## healthcatpoor                                   -0.2226472  0.4185025  -0.532
+    ## symptmild symptoms                               0.0808117  0.1431916   0.564
+    ## symptmoderate symptoms                           0.0578911  0.1508354   0.384
+    ## symptsevere symptoms                             0.0604058  0.1713523   0.353
+    ## AGE                                             -0.0038186  0.0021949  -1.740
+    ## depressdaily                                    -0.0595444  0.5101473  -0.117
+    ## depressweekly or monthly                         0.0884747  0.2766665   0.320
+    ## depressyearly                                    0.0588445  0.2627964   0.224
+    ## symptmild symptoms:depressdaily                 -0.5693604  0.8804734  -0.647
+    ## symptmoderate symptoms:depressdaily             -0.2135014  0.6588485  -0.324
+    ## symptsevere symptoms:depressdaily                0.1493392  0.5915413   0.252
+    ## symptmild symptoms:depressweekly or monthly     -0.1894885  0.3313771  -0.572
+    ## symptmoderate symptoms:depressweekly or monthly  0.0914607  0.3254830   0.281
+    ## symptsevere symptoms:depressweekly or monthly    0.0007314  0.3647894   0.002
+    ## symptmild symptoms:depressyearly                -0.1096991  0.3011617  -0.364
+    ## symptmoderate symptoms:depressyearly            -0.0908555  0.2954563  -0.308
+    ## symptsevere symptoms:depressyearly               0.0202232  0.3255820   0.062
+    ##                                                 Pr(>|t|)    
+    ## (Intercept)                                       <2e-16 ***
+    ## sexcatmale                                        0.4821    
+    ## racecatwhite                                      0.9746    
+    ## healthcatfair                                     0.3601    
+    ## healthcatpoor                                     0.5950    
+    ## symptmild symptoms                                0.5728    
+    ## symptmoderate symptoms                            0.7013    
+    ## symptsevere symptoms                              0.7246    
+    ## AGE                                               0.0827 .  
+    ## depressdaily                                      0.9071    
+    ## depressweekly or monthly                          0.7493    
+    ## depressyearly                                     0.8229    
+    ## symptmild symptoms:depressdaily                   0.5183    
+    ## symptmoderate symptoms:depressdaily               0.7461    
+    ## symptsevere symptoms:depressdaily                 0.8008    
+    ## symptmild symptoms:depressweekly or monthly       0.5678    
+    ## symptmoderate symptoms:depressweekly or monthly   0.7789    
+    ## symptsevere symptoms:depressweekly or monthly     0.9984    
+    ## symptmild symptoms:depressyearly                  0.7159    
+    ## symptmoderate symptoms:depressyearly              0.7586    
+    ## symptsevere symptoms:depressyearly                0.9505    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6994 on 376 degrees of freedom
+    ## Multiple R-squared:  0.02342,    Adjusted R-squared:  -0.02853 
+    ## F-statistic: 0.4509 on 20 and 376 DF,  p-value: 0.9814
+
+``` r
+summary(lm_reg)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE + reg * sympt, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8177 -0.4126  0.0491  0.3553  2.0592 
+    ## 
+    ## Coefficients:
+    ##                                    Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)                        3.878802   0.284510  13.633   <2e-16 ***
+    ## sexcatmale                         0.040986   0.070736   0.579   0.5626    
+    ## racecatwhite                      -0.024825   0.095948  -0.259   0.7960    
+    ## healthcatfair                     -0.167357   0.128415  -1.303   0.1933    
+    ## healthcatpoor                     -0.227152   0.404783  -0.561   0.5750    
+    ## symptmild symptoms                 0.232942   0.304983   0.764   0.4455    
+    ## symptmoderate symptoms             0.040161   0.297141   0.135   0.8926    
+    ## symptsevere symptoms               0.029269   0.320435   0.091   0.9273    
+    ## AGE                               -0.003977   0.002138  -1.860   0.0636 .  
+    ## regmidwest                        -0.151726   0.328382  -0.462   0.6443    
+    ## regsouth                           0.243727   0.295914   0.824   0.4107    
+    ## regwest                            0.263354   0.349175   0.754   0.4512    
+    ## symptmild symptoms:regmidwest     -0.055524   0.382486  -0.145   0.8847    
+    ## symptmoderate symptoms:regmidwest  0.422711   0.375939   1.124   0.2616    
+    ## symptsevere symptoms:regmidwest    0.492339   0.408450   1.205   0.2288    
+    ## symptmild symptoms:regsouth       -0.349839   0.346566  -1.009   0.3134    
+    ## symptmoderate symptoms:regsouth   -0.212598   0.344484  -0.617   0.5375    
+    ## symptsevere symptoms:regsouth     -0.172523   0.374705  -0.460   0.6455    
+    ## symptmild symptoms:regwest        -0.091021   0.410692  -0.222   0.8247    
+    ## symptmoderate symptoms:regwest    -0.025918   0.393226  -0.066   0.9475    
+    ## symptsevere symptoms:regwest       0.095360   0.434055   0.220   0.8262    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6889 on 376 degrees of freedom
+    ## Multiple R-squared:  0.05238,    Adjusted R-squared:  0.001974 
+    ## F-statistic: 1.039 on 20 and 376 DF,  p-value: 0.4144
+
+``` r
+summary(lm_esupport)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + incomecat + 
+    ##     healthcat + sympt + AGE + esupport * sympt, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8016 -0.4548  0.0530  0.3139  2.0800 
+    ## 
+    ## Coefficients:
+    ##                                                  Estimate Std. Error t value
+    ## (Intercept)                                     3.9078584  0.1744173  22.405
+    ## sexcatmale                                      0.0266978  0.0707025   0.378
+    ## racecatwhite                                   -0.0007515  0.0970387  -0.008
+    ## incomecat$50,000-$99,999                        0.1718725  0.0941033   1.826
+    ## incomecatover $100,000                          0.1001521  0.0866362   1.156
+    ## healthcatfair                                  -0.1258672  0.1285763  -0.979
+    ## healthcatpoor                                  -0.0176870  0.4102631  -0.043
+    ## symptmild symptoms                              0.0539908  0.1478112   0.365
+    ## symptmoderate symptoms                          0.0816966  0.1513619   0.540
+    ## symptsevere symptoms                            0.1052557  0.1645169   0.640
+    ## AGE                                            -0.0040674  0.0021761  -1.869
+    ## esupportusually                                -0.0889611  0.2381717  -0.374
+    ## esupportsometimes-never                         0.0995022  0.2650734   0.375
+    ## symptmild symptoms:esupportusually              0.0611668  0.2818722   0.217
+    ## symptmoderate symptoms:esupportusually          0.0284198  0.2741594   0.104
+    ## symptsevere symptoms:esupportusually           -0.0916738  0.3120133  -0.294
+    ## symptmild symptoms:esupportsometimes-never     -0.1923464  0.3074942  -0.626
+    ## symptmoderate symptoms:esupportsometimes-never -0.2132703  0.3119431  -0.684
+    ## symptsevere symptoms:esupportsometimes-never    0.0748275  0.3463074   0.216
+    ##                                                Pr(>|t|)    
+    ## (Intercept)                                      <2e-16 ***
+    ## sexcatmale                                       0.7059    
+    ## racecatwhite                                     0.9938    
+    ## incomecat$50,000-$99,999                         0.0686 .  
+    ## incomecatover $100,000                           0.2484    
+    ## healthcatfair                                    0.3282    
+    ## healthcatpoor                                    0.9656    
+    ## symptmild symptoms                               0.7151    
+    ## symptmoderate symptoms                           0.5897    
+    ## symptsevere symptoms                             0.5227    
+    ## AGE                                              0.0624 .  
+    ## esupportusually                                  0.7090    
+    ## esupportsometimes-never                          0.7076    
+    ## symptmild symptoms:esupportusually               0.8283    
+    ## symptmoderate symptoms:esupportusually           0.9175    
+    ## symptsevere symptoms:esupportusually             0.7691    
+    ## symptmild symptoms:esupportsometimes-never       0.5320    
+    ## symptmoderate symptoms:esupportsometimes-never   0.4946    
+    ## symptsevere symptoms:esupportsometimes-never     0.8290    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6947 on 378 degrees of freedom
+    ## Multiple R-squared:  0.03148,    Adjusted R-squared:  -0.01464 
+    ## F-statistic: 0.6826 on 18 and 378 DF,  p-value: 0.8289
+
+``` r
+summary(lm_income)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE + incomecat * sympt, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8812 -0.4472  0.0349  0.2832  2.1789 
+    ## 
+    ## Coefficients:
+    ##                                                  Estimate Std. Error t value
+    ## (Intercept)                                      4.010641   0.190718  21.029
+    ## sexcatmale                                       0.032295   0.070460   0.458
+    ## racecatwhite                                    -0.015513   0.095410  -0.163
+    ## healthcatfair                                   -0.120835   0.127075  -0.951
+    ## healthcatpoor                                   -0.109382   0.406688  -0.269
+    ## symptmild symptoms                              -0.052416   0.193460  -0.271
+    ## symptmoderate symptoms                          -0.003188   0.200095  -0.016
+    ## symptsevere symptoms                            -0.155890   0.204980  -0.761
+    ## AGE                                             -0.003931   0.002161  -1.819
+    ## incomecat$50,000-$99,999                         0.034442   0.225324   0.153
+    ## incomecatover $100,000                          -0.097886   0.239447  -0.409
+    ## symptmild symptoms:incomecat$50,000-$99,999      0.068463   0.277153   0.247
+    ## symptmoderate symptoms:incomecat$50,000-$99,999  0.026620   0.279468   0.095
+    ## symptsevere symptoms:incomecat$50,000-$99,999    0.466837   0.296292   1.576
+    ## symptmild symptoms:incomecatover $100,000        0.197551   0.277207   0.713
+    ## symptmoderate symptoms:incomecatover $100,000    0.149603   0.281145   0.532
+    ## symptsevere symptoms:incomecatover $100,000      0.342819   0.310989   1.102
+    ##                                                 Pr(>|t|)    
+    ## (Intercept)                                       <2e-16 ***
+    ## sexcatmale                                        0.6470    
+    ## racecatwhite                                      0.8709    
+    ## healthcatfair                                     0.3423    
+    ## healthcatpoor                                     0.7881    
+    ## symptmild symptoms                                0.7866    
+    ## symptmoderate symptoms                            0.9873    
+    ## symptsevere symptoms                              0.4474    
+    ## AGE                                               0.0697 .  
+    ## incomecat$50,000-$99,999                          0.8786    
+    ## incomecatover $100,000                            0.6829    
+    ## symptmild symptoms:incomecat$50,000-$99,999       0.8050    
+    ## symptmoderate symptoms:incomecat$50,000-$99,999   0.9242    
+    ## symptsevere symptoms:incomecat$50,000-$99,999     0.1160    
+    ## symptmild symptoms:incomecatover $100,000         0.4765    
+    ## symptmoderate symptoms:incomecatover $100,000     0.5950    
+    ## symptsevere symptoms:incomecatover $100,000       0.2710    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6919 on 380 degrees of freedom
+    ## Multiple R-squared:  0.03412,    Adjusted R-squared:  -0.006547 
+    ## F-statistic: 0.839 on 16 and 380 DF,  p-value: 0.6408
+
+``` r
+# None are effect modifiers so we will stick with
+lm1 <- lm(log(MOD10DMIN) ~ sexcat + racecat + healthcat + sympt + AGE, data = data)
+
+summary(lm1)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8528 -0.4554  0.0505  0.2810  2.1917 
+    ## 
+    ## Coefficients:
+    ##                         Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)             3.978605   0.144534  27.527   <2e-16 ***
+    ## sexcatmale              0.041469   0.069951   0.593   0.5536    
+    ## racecatwhite            0.002340   0.094338   0.025   0.9802    
+    ## healthcatfair          -0.146695   0.125329  -1.170   0.2425    
+    ## healthcatpoor          -0.145437   0.401778  -0.362   0.7176    
+    ## symptmild symptoms      0.029941   0.113782   0.263   0.7926    
+    ## symptmoderate symptoms  0.048412   0.114314   0.423   0.6722    
+    ## symptsevere symptoms    0.086427   0.125649   0.688   0.4920    
+    ## AGE                    -0.003857   0.002139  -1.803   0.0721 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6916 on 388 degrees of freedom
+    ## Multiple R-squared:  0.01445,    Adjusted R-squared:  -0.005874 
+    ## F-statistic: 0.7109 on 8 and 388 DF,  p-value: 0.6819
+
+# Diagnosis and Model Evaluation
+
+``` r
+plot(lm1, 1:6)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-50-1.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-50-2.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-50-3.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-50-4.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-50-5.png)<!-- -->![](README_files/figure-gfm/unnamed-chunk-50-6.png)<!-- -->
+
+``` r
+hist(lm1$residuals)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-50-7.png)<!-- -->
+
+``` r
+# 265, 46, 383
+
+# 12/397
+# 0.0302267
+
+# modelling dropping those 
+lm1_outliers <- lm(log(MOD10DMIN) ~ sexcat + racecat + healthcat + sympt + AGE, data = 
+data[-c(46,265, 383),])
+
+summary(lm1_outliers)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE, data = data[-c(46, 265, 383), ])
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8705 -0.4665  0.0849  0.2656  2.2153 
+    ## 
+    ## Coefficients:
+    ##                         Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)             3.911275   0.141298  27.681   <2e-16 ***
+    ## sexcatmale              0.064804   0.068355   0.948    0.344    
+    ## racecatwhite            0.002294   0.091773   0.025    0.980    
+    ## healthcatfair          -0.165610   0.121973  -1.358    0.175    
+    ## healthcatpoor          -0.468764   0.678626  -0.691    0.490    
+    ## symptmild symptoms      0.061304   0.110903   0.553    0.581    
+    ## symptmoderate symptoms  0.038661   0.111278   0.347    0.728    
+    ## symptsevere symptoms    0.083618   0.122466   0.683    0.495    
+    ## AGE                    -0.002545   0.002098  -1.213    0.226    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6728 on 385 degrees of freedom
+    ## Multiple R-squared:  0.01381,    Adjusted R-squared:  -0.006679 
+    ## F-statistic: 0.6741 on 8 and 385 DF,  p-value: 0.7144
+
+``` r
+summary(lm1)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = log(MOD10DMIN) ~ sexcat + racecat + healthcat + 
+    ##     sympt + AGE, data = data)
+    ## 
+    ## Residuals:
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.8528 -0.4554  0.0505  0.2810  2.1917 
+    ## 
+    ## Coefficients:
+    ##                         Estimate Std. Error t value Pr(>|t|)    
+    ## (Intercept)             3.978605   0.144534  27.527   <2e-16 ***
+    ## sexcatmale              0.041469   0.069951   0.593   0.5536    
+    ## racecatwhite            0.002340   0.094338   0.025   0.9802    
+    ## healthcatfair          -0.146695   0.125329  -1.170   0.2425    
+    ## healthcatpoor          -0.145437   0.401778  -0.362   0.7176    
+    ## symptmild symptoms      0.029941   0.113782   0.263   0.7926    
+    ## symptmoderate symptoms  0.048412   0.114314   0.423   0.6722    
+    ## symptsevere symptoms    0.086427   0.125649   0.688   0.4920    
+    ## AGE                    -0.003857   0.002139  -1.803   0.0721 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 0.6916 on 388 degrees of freedom
+    ## Multiple R-squared:  0.01445,    Adjusted R-squared:  -0.005874 
+    ## F-statistic: 0.7109 on 8 and 388 DF,  p-value: 0.6819
+
+``` r
+# none are above 5 :)
+VIF(lm1) 
+```
+
+    ##               GVIF Df GVIF^(1/(2*Df))
+    ## sexcat    1.007309  1        1.003648
+    ## racecat   1.072669  1        1.035697
+    ## healthcat 1.024043  2        1.005957
+    ## sympt     1.094357  3        1.015141
+    ## AGE       1.069634  1        1.034231
+
+From the residual plots, it seems linearity, normality, and equal
+variance holds.
